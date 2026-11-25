@@ -1,66 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   Building2,
-  Calendar,
-  Check,
   CheckCircle2,
   CreditCard,
   Loader2,
-  Lock,
-  MapPin,
-  Megaphone,
-  Phone,
-  Sparkles,
-  Store,
-  Tag,
+  Plus,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import styles from './PromotePanel.module.css';
 
-const PROMO_PLANS = [
-  {
-    id: 'starter',
-    name: 'Starter Spot',
-    price: 2500,
-    period: '7 days',
-    perks: ['Featured badge on map', 'Listed in Explore tab'],
-  },
-  {
-    id: 'spotlight',
-    name: 'Campus Spotlight',
-    price: 6000,
-    period: '14 days',
-    popular: true,
-    perks: ['Top Explore card slot', 'Priority search ranking', 'Highlighted pin'],
-  },
-  {
-    id: 'partner',
-    name: 'Semester Partner',
-    price: 18000,
-    period: '30 days',
-    perks: ['Hero placement all month', 'Place + Event boost', 'Analytics summary'],
-  },
-];
-
-const PLACE_CATEGORIES = [
-  'Food & Drinks',
-  'Hostel / Lodge',
-  'Print & Cybercafe',
-  'Shop / Supermarket',
-  'Services & Repairs',
-  'Health & Pharmacy',
-];
-
-const EVENT_CATEGORIES = [
-  'Tech & Hackathon',
-  'Campus Concert / Social',
-  'Seminar / Workshop',
-  'Sports & Games',
-  'Fellowship / Community',
-];
-
 const STORAGE_KEY = 'unimaps_promotions_v1';
+const DAILY_RATE = { place: 200, event: 300 };
+const MAX_PHOTOS = 5;
 
 function loadSavedPromotions() {
   try {
@@ -71,33 +25,46 @@ function loadSavedPromotions() {
   }
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read image'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PromotePanel({
   open = false,
   initialKind = 'place',
   onClose,
 }) {
-  const [view, setView] = useState('form'); // 'form' | 'checkout' | 'success' | 'list'
-  const [payMethod, setPayMethod] = useState('transfer'); // 'transfer' | 'card'
-  const [kind, setKind] = useState(initialKind);
-  const [planId, setPlanId] = useState('spotlight');
+  const [step, setStep] = useState(1); // 1 = details, 2 = simulated checkout, 3 = success
+  const [kind, setKind] = useState(initialKind === 'event' ? 'event' : 'place');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(PLACE_CATEGORIES[0]);
-  const [locationText, setLocationText] = useState('');
-  const [tagline, setTagline] = useState('');
-  const [contact, setContact] = useState('');
+  const [description, setDescription] = useState('');
+  const [storeType, setStoreType] = useState('Physical shop');
+  const [eventVenue, setEventVenue] = useState('');
   const [eventDate, setEventDate] = useState('');
-  const [ticketPrice, setTicketPrice] = useState('Free');
+  const [contact, setContact] = useState('');
+  const [photos, setPhotos] = useState([]);
+  const [days, setDays] = useState(7);
+  const [promoCode, setPromoCode] = useState('');
+  const [discountPct, setDiscountPct] = useState(0);
+  const [promoMsg, setPromoMsg] = useState('');
+  const [payMethod, setPayMethod] = useState('transfer');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [lastBooking, setLastBooking] = useState(null);
   const [myPromotions, setMyPromotions] = useState(loadSavedPromotions);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    setKind(initialKind || 'place');
-    setCategory(
-      initialKind === 'event' ? EVENT_CATEGORIES[0] : PLACE_CATEGORIES[0]
-    );
-  }, [initialKind]);
+    setKind(initialKind === 'event' ? 'event' : 'place');
+    setStoreType(initialKind === 'event' ? 'On-campus' : 'Physical shop');
+    setStep(1);
+    setError('');
+  }, [initialKind, open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -110,57 +77,72 @@ export default function PromotePanel({
 
   if (!open) return null;
 
-  const selectedPlan =
-    PROMO_PLANS.find((p) => p.id === planId) || PROMO_PLANS[1];
-  const categoryOptions =
-    kind === 'event' ? EVENT_CATEGORIES : PLACE_CATEGORIES;
+  const rate = DAILY_RATE[kind] || 200;
+  const subtotal = days * rate;
+  const discount = Math.round((subtotal * discountPct) / 100);
+  const total = Math.max(0, subtotal - discount);
 
   function handleKindChange(nextKind) {
     setKind(nextKind);
-    setCategory(
-      nextKind === 'event' ? EVENT_CATEGORIES[0] : PLACE_CATEGORIES[0]
-    );
+    setStoreType(nextKind === 'event' ? 'On-campus' : 'Physical shop');
     setError('');
   }
 
-  function handleProceedToPayment(e) {
-    e.preventDefault();
+  async function handlePhotoUpload(e) {
+    const files = Array.from(e.target.files || []).slice(0, MAX_PHOTOS - photos.length);
+    if (!files.length) return;
+    const urls = await Promise.all(files.map(readFileAsDataUrl));
+    setPhotos((prev) => [...prev, ...urls].slice(0, MAX_PHOTOS));
+    e.target.value = '';
+  }
+
+  function removePhoto(idx) {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleApplyPromo() {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+    if (['ODS2026', 'FUTA10', 'UNIMAPS', 'CAMPUS20'].includes(code)) {
+      setDiscountPct(20);
+      setPromoMsg('20% campus discount applied!');
+    } else {
+      setDiscountPct(0);
+      setPromoMsg('Try ODS2026 or FUTA10 for 20% off');
+    }
+  }
+
+  function handleGoToCheckout(e) {
+    e?.preventDefault();
     if (!title.trim()) {
       setError(
         kind === 'event'
-          ? 'Enter your event title.'
-          : 'Enter your business or place name.'
+          ? 'Please enter your event title.'
+          : 'Please enter your business name.'
       );
       return;
     }
-    if (!contact.trim()) {
-      setError('Enter a WhatsApp or phone number so we can confirm.');
-      return;
-    }
     setError('');
-    setView('checkout');
+    setStep(2);
   }
 
   async function handleSimulatePayment() {
-    setError('');
     setSubmitting(true);
-
-    // Simulate payment gateway verification delay
+    setError('');
     await new Promise((resolve) => setTimeout(resolve, 1100));
 
     const paymentRef = `PAY-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const payload = {
       kind,
-      plan_id: selectedPlan.id,
-      plan_name: selectedPlan.name,
-      amount_ngn: selectedPlan.price,
+      plan_id: `${days}d`,
+      plan_name: `${days}-day ${kind === 'event' ? 'Event' : 'Business'} Boost`,
+      amount_ngn: total,
       title: title.trim(),
-      category,
-      location: locationText.trim() || 'Campus Area',
-      tagline: tagline.trim(),
-      contact: contact.trim(),
+      category: storeType,
+      location: eventVenue.trim() || storeType,
+      tagline: description.trim(),
+      contact: contact.trim() || 'WhatsApp Verified',
       event_date: kind === 'event' ? eventDate.trim() : null,
-      payment_method: payMethod,
       payment_ref: paymentRef,
       status: 'paid',
     };
@@ -168,13 +150,11 @@ export default function PromotePanel({
     let savedRecord = {
       ...payload,
       id: `PRM-${Date.now().toString(36).toUpperCase().slice(-6)}`,
-      status: 'paid',
       created_at: new Date().toISOString(),
     };
 
     try {
-      const apiBase =
-        (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+      const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
       const res = await fetch(`${apiBase}/promotions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -185,7 +165,7 @@ export default function PromotePanel({
         if (json?.id) savedRecord = { ...savedRecord, ...json, payment_ref: paymentRef, status: 'paid' };
       }
     } catch {
-      // Fall back cleanly to local persistence if offline
+      // Fall back gracefully to local storage
     }
 
     const updated = [savedRecord, ...myPromotions];
@@ -198,442 +178,439 @@ export default function PromotePanel({
 
     setLastBooking(savedRecord);
     setSubmitting(false);
-    setView('success');
+    setStep(3);
   }
 
-  function resetForm() {
+  function resetAll() {
     setTitle('');
-    setLocationText('');
-    setTagline('');
-    setContact('');
+    setDescription('');
+    setEventVenue('');
     setEventDate('');
-    setError('');
-    setView('form');
+    setContact('');
+    setPhotos([]);
+    setDays(7);
+    setPromoCode('');
+    setDiscountPct(0);
+    setPromoMsg('');
+    setStep(1);
   }
+
+  const slotPlaceholders = Math.max(0, 3 - photos.length);
 
   return (
-    <aside
-      className={styles.panel}
-      aria-label="Promote on campus map"
-      role="dialog"
-    >
-      <div className={styles.grabHandle} aria-hidden="true" />
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Promote">
+      {/* Top Bar */}
+      <header className={styles.topBar}>
+        <button
+          type="button"
+          className={styles.backBtn}
+          onClick={() => (step === 2 ? setStep(1) : onClose?.())}
+        >
+          <span className={styles.backCircle}>
+            <ArrowLeft size={16} />
+          </span>
+          <span>Back</span>
+        </button>
 
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          {view !== 'form' ? (
-            <button
-              type="button"
-              className={styles.backBtn}
-              onClick={() => setView('form')}
-              aria-label="Back to form"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          ) : (
-            <span className={styles.headerIcon}>
-              <Megaphone size={18} />
-            </span>
-          )}
-          <div>
-            <h2 className={styles.title}>
-              {view === 'list'
-                ? 'My Promotions'
-                : view === 'checkout'
-                  ? 'Complete Payment'
-                  : view === 'success'
-                    ? 'Payment Confirmed'
-                    : 'Promote on Campus'}
-            </h2>
-            <p className={styles.subtitle}>
-              Reach thousands of students searching daily
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.headerActions}>
-          {myPromotions.length > 0 && view === 'form' && (
-            <button
-              type="button"
-              className={styles.listBtn}
-              onClick={() => setView('list')}
-            >
-              Mine ({myPromotions.length})
-            </button>
-          )}
+        <div className={styles.centerToggle} role="tablist">
           <button
             type="button"
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label="Close promote panel"
+            role="tab"
+            aria-selected={kind === 'place'}
+            className={`${styles.toggleTab} ${kind === 'place' ? styles.toggleTabActive : ''}`}
+            onClick={() => handleKindChange('place')}
           >
-            <X size={18} />
+            Business
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={kind === 'event'}
+            className={`${styles.toggleTab} ${kind === 'event' ? styles.toggleTabActive : ''}`}
+            onClick={() => handleKindChange('event')}
+          >
+            Event
+          </button>
+        </div>
+
+        <div className={styles.stepLabel}>
+          {step === 3 ? 'CONFIRMED' : `STEP ${step} OF 2`}
         </div>
       </header>
 
-      <div className={styles.body}>
-        {view === 'checkout' ? (
-          <div className={styles.checkoutBox}>
-            <div className={styles.simBanner}>
-              <Lock size={13} />
-              <span>Simulated Checkout · Demo Payment Gateway</span>
-            </div>
-
-            <div className={styles.orderSummary}>
-              <div className={styles.summaryRow}>
-                <span>Campaign</span>
-                <strong>{title.trim()}</strong>
-              </div>
-              <div className={styles.summaryRow}>
-                <span>Plan</span>
-                <strong>
-                  {selectedPlan.name} ({selectedPlan.period})
-                </strong>
-              </div>
-              <div className={styles.summaryRow}>
-                <span>Gateway Fee</span>
-                <strong>₦0</strong>
-              </div>
-              <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
-                <span>Total Due</span>
-                <strong className="tabular-nums">
-                  ₦{selectedPlan.price.toLocaleString()}
-                </strong>
-              </div>
-            </div>
-
-            <div className={styles.sectionLabel}>Select payment method</div>
-            <div className={styles.kindSwitch}>
-              <button
-                type="button"
-                className={`${styles.kindBtn} ${payMethod === 'transfer' ? styles.kindBtnActive : ''}`}
-                onClick={() => setPayMethod('transfer')}
-              >
-                <Building2 size={15} /> Bank Transfer
-              </button>
-              <button
-                type="button"
-                className={`${styles.kindBtn} ${payMethod === 'card' ? styles.kindBtnActive : ''}`}
-                onClick={() => setPayMethod('card')}
-              >
-                <CreditCard size={15} /> Debit Card
-              </button>
-            </div>
-
-            {payMethod === 'transfer' ? (
-              <div className={styles.bankBox}>
-                <div className={styles.bankLine}>
-                  <span>Bank Name</span>
-                  <strong>Wema Bank (Virtual)</strong>
-                </div>
-                <div className={styles.bankLine}>
-                  <span>Account Number</span>
-                  <strong className={styles.monoText}>9045 8120 33</strong>
-                </div>
-                <div className={styles.bankLine}>
-                  <span>Account Name</span>
-                  <strong>UNIMAPS PROMO ESCROW</strong>
-                </div>
-              </div>
-            ) : (
-              <div className={styles.bankBox}>
-                <div className={styles.bankLine}>
-                  <span>Test Card</span>
-                  <strong className={styles.monoText}>5061 •••• •••• 4242</strong>
-                </div>
-                <div className={styles.bankLine}>
-                  <span>Expiry / CVV</span>
-                  <strong className={styles.monoText}>12/28 · 408</strong>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className={styles.primaryBtn}
-              disabled={submitting}
-              onClick={handleSimulatePayment}
-            >
-              {submitting ? (
-                <span className={styles.btnInline}>
-                  <Loader2 size={16} className={styles.spin} /> Verifying payment...
-                </span>
-              ) : payMethod === 'transfer' ? (
-                `I’ve Sent ₦${selectedPlan.price.toLocaleString()} (Simulate)`
-              ) : (
-                `Pay ₦${selectedPlan.price.toLocaleString()} Now (Simulate)`
-              )}
-            </button>
-
-            <button
-              type="button"
-              className={styles.secondaryBtn}
-              disabled={submitting}
-              onClick={() => setView('form')}
-            >
-              Back to details
-            </button>
-          </div>
-        ) : view === 'success' && lastBooking ? (
-          <div className={styles.successBox}>
+      {/* Main Content */}
+      <main className={styles.main}>
+        {step === 3 && lastBooking ? (
+          <div className={styles.successCard}>
             <div className={styles.successIcon}>
-              <CheckCircle2 size={36} />
+              <CheckCircle2 size={40} />
             </div>
-            <h3 className={styles.successTitle}>Payment Verified!</h3>
-            <p className={styles.successText}>
-              <strong>{lastBooking.title}</strong> is now queued for{' '}
-              <strong>{lastBooking.plan_name}</strong> (₦
-              {Number(lastBooking.amount_ngn).toLocaleString()} paid).
+            <h2 className={styles.successHeading}>Payment Confirmed!</h2>
+            <p className={styles.successSub}>
+              <strong>{lastBooking.title}</strong> is booked for{' '}
+              <strong>{days} days</strong> (₦{Number(lastBooking.amount_ngn).toLocaleString()} paid).
             </p>
-            <div className={styles.refPill}>
+            <div className={styles.receiptPill}>
               Receipt: <span>{lastBooking.payment_ref || lastBooking.id}</span>
             </div>
-            <p className={styles.successHint}>
-              Confirmation sent to <strong>{lastBooking.contact}</strong>. Your
-              featured pin & Explore card will go live shortly.
-            </p>
-            <div className={styles.successActions}>
-              <button
-                type="button"
-                className={styles.primaryBtn}
-                onClick={resetForm}
-              >
-                Promote another
+            <div className={styles.successBtns}>
+              <button type="button" className={styles.ctaBtn} onClick={resetAll}>
+                Promote another {kind === 'event' ? 'event' : 'business'}
               </button>
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                onClick={() => setView('list')}
-              >
-                View my campaigns
+              <button type="button" className={styles.cancelLink} onClick={onClose}>
+                Return to map
               </button>
             </div>
           </div>
-        ) : view === 'list' ? (
-          <div className={styles.listWrap}>
-            {myPromotions.length === 0 ? (
-              <p className={styles.emptyText}>No promotion requests yet.</p>
-            ) : (
-              myPromotions.map((item) => (
-                <div key={item.id} className={styles.promoListItem}>
-                  <div className={styles.promoListTop}>
-                    <span className={styles.promoKindBadge}>
-                      {item.kind === 'event' ? 'Event' : 'Place'}
-                    </span>
-                    <span className={styles.promoStatus}>
-                      {item.status === 'paid' ? 'Paid · Active' : 'Pending review'}
-                    </span>
+        ) : step === 2 ? (
+          <div className={styles.checkoutWrap}>
+            <div className={styles.checkoutCard}>
+              <div className={styles.simTag}>
+                <ShieldCheck size={14} /> Simulated Checkout · Instant Demo Verification
+              </div>
+
+              <h2 className={styles.checkoutTitle}>Complete your payment</h2>
+
+              <div className={styles.summaryRows}>
+                <div className={styles.summaryRow}>
+                  <span>{kind === 'event' ? 'Event' : 'Business'}</span>
+                  <strong>{title.trim()}</strong>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>Campaign length</span>
+                  <strong>{days} days</strong>
+                </div>
+                <div className={`${styles.summaryRow} ${styles.totalRow}`}>
+                  <span>Total</span>
+                  <strong className={`${styles.totalAmount} tabular-nums`}>
+                    ₦{total.toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+
+              <div className={styles.payTabs}>
+                <button
+                  type="button"
+                  className={`${styles.payTab} ${payMethod === 'transfer' ? styles.payTabActive : ''}`}
+                  onClick={() => setPayMethod('transfer')}
+                >
+                  <Building2 size={15} /> Bank Transfer
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.payTab} ${payMethod === 'card' ? styles.payTabActive : ''}`}
+                  onClick={() => setPayMethod('card')}
+                >
+                  <CreditCard size={15} /> Debit Card
+                </button>
+              </div>
+
+              {payMethod === 'transfer' ? (
+                <div className={styles.payDetails}>
+                  <div>
+                    <span>Bank</span>
+                    <strong>Wema Bank (Virtual Escrow)</strong>
                   </div>
-                  <div className={styles.promoListTitle}>{item.title}</div>
-                  <div className={styles.promoListMeta}>
-                    {item.plan_name} · ₦
-                    {Number(item.amount_ngn || 0).toLocaleString()} · Ref{' '}
-                    {item.id}
+                  <div>
+                    <span>Account Number</span>
+                    <strong className={styles.mono}>9045 8120 33</strong>
+                  </div>
+                  <div>
+                    <span>Account Name</span>
+                    <strong>UNIMAPS PROMO ESCROW</strong>
                   </div>
                 </div>
-              ))
-            )}
+              ) : (
+                <div className={styles.payDetails}>
+                  <div>
+                    <span>Demo Card</span>
+                    <strong className={styles.mono}>5061 •••• •••• 4242</strong>
+                  </div>
+                  <div>
+                    <span>Expiry / CVV</span>
+                    <strong className={styles.mono}>12/28 · 408</strong>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className={styles.ctaBtn}
+                disabled={submitting}
+                onClick={handleSimulatePayment}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={17} className={styles.spin} /> Verifying payment...
+                  </>
+                ) : (
+                  <>
+                    Pay ₦{total.toLocaleString()} (Simulate) <ArrowRight size={17} />
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className={styles.cancelLink}
+                disabled={submitting}
+                onClick={() => setStep(1)}
+              >
+                Back to campaign details
+              </button>
+            </div>
           </div>
         ) : (
-          <form onSubmit={handleProceedToPayment} className={styles.form}>
-            {/* Kind toggle */}
-            <div className={styles.kindSwitch} role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={kind === 'place'}
-                className={`${styles.kindBtn} ${kind === 'place' ? styles.kindBtnActive : ''}`}
-                onClick={() => handleKindChange('place')}
-              >
-                <Store size={15} />
-                Business / Place
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={kind === 'event'}
-                className={`${styles.kindBtn} ${kind === 'event' ? styles.kindBtnActive : ''}`}
-                onClick={() => handleKindChange('event')}
-              >
-                <Calendar size={15} />
-                Campus Event
-              </button>
-            </div>
+          <form className={styles.grid} onSubmit={handleGoToCheckout}>
+            {/* Left Column: Form */}
+            <div className={styles.leftCol}>
+              <div className={styles.eyebrow}>PROMOTE</div>
+              <h1 className={styles.heroTitle}>
+                {kind === 'event'
+                  ? 'Put your event in front of FUTA.'
+                  : 'Put your business in front of FUTA.'}
+              </h1>
+              <p className={styles.heroSub}>
+                Thousands of students and campus explorers, every day.
+              </p>
 
-            {/* Plans */}
-            <div className={styles.sectionLabel}>Choose a boost plan</div>
-            <div className={styles.plansGrid}>
-              {PROMO_PLANS.map((plan) => {
-                const active = plan.id === planId;
-                return (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    className={`${styles.planCard} ${active ? styles.planCardActive : ''}`}
-                    onClick={() => setPlanId(plan.id)}
-                  >
-                    <div className={styles.planHead}>
-                      <span className={styles.planName}>{plan.name}</span>
-                      {plan.popular && (
-                        <span className={styles.popularBadge}>Popular</span>
-                      )}
-                    </div>
-                    <div className={`${styles.planPrice} tabular-nums`}>
-                      ₦{plan.price.toLocaleString()}
-                      <span> / {plan.period}</span>
-                    </div>
-                    <ul className={styles.planPerks}>
-                      {plan.perks.map((perk) => (
-                        <li key={perk}>
-                          <Check size={12} /> {perk}
-                        </li>
-                      ))}
-                    </ul>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Details */}
-            <div className={styles.sectionLabel}>Campaign details</div>
-            <div className={styles.field}>
-              <label htmlFor="promo-title">
-                {kind === 'event' ? 'Event Title *' : 'Business / Place Name *'}
-              </label>
-              <input
-                id="promo-title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={
-                  kind === 'event'
-                    ? 'e.g. Campus Tech Fest 2026'
-                    : 'e.g. Mama Put Express & Print Hub'
-                }
-                required
-              />
-            </div>
-
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <label htmlFor="promo-cat">
-                  <Tag size={12} /> Category
-                </label>
-                <select
-                  id="promo-cat"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {categoryOptions.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="promo-loc">
-                  <MapPin size={12} /> Area / Venue
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel} htmlFor="promo-name">
+                  {kind === 'event' ? 'EVENT NAME' : 'BUSINESS NAME'}
                 </label>
                 <input
-                  id="promo-loc"
+                  id="promo-name"
                   type="text"
-                  value={locationText}
-                  onChange={(e) => setLocationText(e.target.value)}
-                  placeholder="e.g. South Gate / SUB"
+                  className={styles.lineInput}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={
+                    kind === 'event'
+                      ? 'e.g. FUTA Tech & Innovation Summit'
+                      : "e.g. Debby's Fragrances"
+                  }
+                  required
                 />
               </div>
-            </div>
 
-            {kind === 'event' && (
-              <div className={styles.twoCol}>
-                <div className={styles.field}>
-                  <label htmlFor="promo-date">
-                    <Calendar size={12} /> Date & Time
-                  </label>
-                  <input
-                    id="promo-date"
-                    type="text"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    placeholder="Fri, Nov 27 · 2 PM"
-                  />
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel} htmlFor="promo-desc">
+                  DESCRIPTION <span className={styles.optionalTag}>· optional</span>
+                </label>
+                <textarea
+                  id="promo-desc"
+                  rows={2}
+                  className={styles.lineTextarea}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={
+                    kind === 'event'
+                      ? 'A line or two about what attendees can expect'
+                      : 'A line or two about what you offer'
+                  }
+                />
+              </div>
+
+              {kind === 'event' && (
+                <div className={styles.twoCol}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel} htmlFor="promo-venue">
+                      VENUE / AREA
+                    </label>
+                    <input
+                      id="promo-venue"
+                      type="text"
+                      className={styles.lineInput}
+                      value={eventVenue}
+                      onChange={(e) => setEventVenue(e.target.value)}
+                      placeholder="e.g. 2500-Seater Auditorium"
+                    />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel} htmlFor="promo-date">
+                      DATE & TIME
+                    </label>
+                    <input
+                      id="promo-date"
+                      type="text"
+                      className={styles.lineInput}
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      placeholder="e.g. Fri, Nov 27 · 2 PM"
+                    />
+                  </div>
                 </div>
-                <div className={styles.field}>
-                  <label htmlFor="promo-ticket">
-                    <Tag size={12} /> Ticket Entry
-                  </label>
-                  <input
-                    id="promo-ticket"
-                    type="text"
-                    value={ticketPrice}
-                    onChange={(e) => setTicketPrice(e.target.value)}
-                    placeholder="Free or ₦1,500"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className={styles.field}>
-              <label htmlFor="promo-tagline">Short Promo Offer / Pitch</label>
-              <textarea
-                id="promo-tagline"
-                rows={2}
-                value={tagline}
-                onChange={(e) => setTagline(e.target.value)}
-                placeholder="10% student discount, fast delivery, or free entry..."
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="promo-contact">
-                <Phone size={12} /> WhatsApp / Phone *
-              </label>
-              <input
-                id="promo-contact"
-                type="tel"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="0801 234 5678"
-                required
-              />
-            </div>
-
-            {/* Live card preview */}
-            <div className={styles.previewCard}>
-              <div className={styles.previewBadge}>
-                <Sparkles size={11} /> Featured Preview
-              </div>
-              <div className={styles.previewTitle}>
-                {title.trim() ||
-                  (kind === 'event'
-                    ? 'Your Campus Event'
-                    : 'Your Campus Business')}
-              </div>
-              <div className={styles.previewMeta}>
-                {category} · {locationText.trim() || 'Campus Area'}
-                {kind === 'event' && eventDate.trim() ? ` · ${eventDate.trim()}` : ''}
-                {kind === 'event' && ticketPrice.trim() ? ` · ${ticketPrice.trim()}` : ''}
-              </div>
-              {tagline.trim() && (
-                <div className={styles.previewDesc}>{tagline.trim()}</div>
               )}
+
+              <div className={styles.fieldGroup}>
+                <div className={styles.fieldLabel}>TYPE</div>
+                <div className={styles.typePillSwitch}>
+                  {(kind === 'event'
+                    ? ['On-campus', 'Online']
+                    : ['Physical shop', 'Online store']
+                  ).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={`${styles.typePill} ${storeType === opt ? styles.typePillActive : ''}`}
+                      onClick={() => setStoreType(opt)}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <div className={styles.photosHeader}>
+                  <span className={styles.fieldLabel}>PHOTOS</span>
+                  <span className={styles.photosHint}>JPG or PNG · up to 5</span>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={handlePhotoUpload}
+                />
+                <div className={styles.photosRow}>
+                  {photos.length < MAX_PHOTOS && (
+                    <button
+                      type="button"
+                      className={styles.addPhotoBox}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Plus size={20} />
+                      <span>Add photo</span>
+                    </button>
+                  )}
+
+                  {photos.map((src, idx) => (
+                    <div key={idx} className={styles.photoThumb}>
+                      <img src={src} alt={`Upload ${idx + 1}`} />
+                      <button
+                        type="button"
+                        className={styles.removePhotoBtn}
+                        onClick={() => removePhoto(idx)}
+                        aria-label="Remove photo"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {Array.from({ length: slotPlaceholders }).map((_, idx) => (
+                    <div key={`slot-${idx}`} className={styles.emptyPhotoSlot} />
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <div className={styles.sliderHeader}>
+                  <span className={styles.fieldLabel}>CAMPAIGN LENGTH</span>
+                  <div className={styles.daysReadout}>
+                    <strong className="tabular-nums">{days}</strong>
+                    <span>{days === 1 ? 'day' : 'days'}</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={30}
+                  value={days}
+                  onChange={(e) => setDays(Number(e.target.value))}
+                  className={styles.slider}
+                />
+                <div className={styles.sliderTicks}>
+                  <span>1 day</span>
+                  <span>15</span>
+                  <span>30 days</span>
+                </div>
+              </div>
+
+              {error && <div className={styles.errorBox}>{error}</div>}
             </div>
 
-            {error && <div className={styles.errorBox}>{error}</div>}
+            {/* Right Column: Summary Card */}
+            <aside className={styles.rightCol}>
+              <div className={styles.summaryCard}>
+                <div className={styles.summaryTop}>
+                  <span className={styles.fieldLabel}>SUMMARY</span>
+                  <span className={styles.reachBadge}>Daily student reach</span>
+                </div>
 
-            <button
-              type="submit"
-              className={styles.primaryBtn}
-              disabled={submitting}
-            >
-              {`Continue to Payment · ₦${selectedPlan.price.toLocaleString()}`}
-            </button>
+                <div className={styles.summaryRows}>
+                  <div className={styles.summaryRow}>
+                    <span>Campaign length</span>
+                    <strong className="tabular-nums">
+                      {days} {days === 1 ? 'day' : 'days'}
+                    </strong>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>Rate</span>
+                    <strong className="tabular-nums">
+                      ₦{rate.toLocaleString()} / day
+                    </strong>
+                  </div>
+                  {discount > 0 && (
+                    <div className={styles.summaryRow}>
+                      <span>Discount ({discountPct}%)</span>
+                      <strong className={styles.discountVal}>
+                        -₦{discount.toLocaleString()}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.promoRow}>
+                  <input
+                    type="text"
+                    placeholder="Promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value)}
+                    className={styles.promoInput}
+                  />
+                  <button
+                    type="button"
+                    className={styles.applyBtn}
+                    onClick={handleApplyPromo}
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoMsg && <div className={styles.promoMsg}>{promoMsg}</div>}
+
+                <div className={`${styles.summaryRow} ${styles.totalRow}`}>
+                  <span>Total</span>
+                  <strong className={`${styles.totalAmount} tabular-nums`}>
+                    ₦{total.toLocaleString()}
+                  </strong>
+                </div>
+
+                <button type="submit" className={styles.ctaBtn}>
+                  Continue to checkout <ArrowRight size={17} />
+                </button>
+
+                <div className={styles.securedNote}>
+                  <ShieldCheck size={14} />
+                  <span>
+                    Secured by <strong>Unimaps Demo Pay</strong>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.cancelLink}
+                  onClick={onClose}
+                >
+                  Cancel and go back
+                </button>
+              </div>
+            </aside>
           </form>
         )}
-      </div>
-    </aside>
+      </main>
+    </div>
   );
 }
