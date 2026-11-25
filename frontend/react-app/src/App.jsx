@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import BaseMap from './components/BaseMap';
 import ExplorePanel from './components/explore/ExplorePanel';
 import WaypointMarkers from './components/map/WaypointMarkers';
@@ -10,10 +10,12 @@ import {
 } from './components/navigation';
 import SearchBar from './components/search/SearchBar';
 import SignalPanel from './components/signal/SignalPanel';
+import { SuggestPanel } from './components/suggest';
 import PlaceCard from './components/waypoints/PlaceCard';
 import { useExploreData } from './hooks/useExploreData';
 import { useGpsTracking } from './hooks/useGpsTracking';
 import { useNavigation } from './hooks/useNavigation';
+import { useSuggestedPlaces } from './hooks/useSuggestedPlaces';
 import './App.css';
 
 function App() {
@@ -22,9 +24,12 @@ function App() {
   const [exploreMobileExpanded, setExploreMobileExpanded] = useState(false);
   const [signalMobileExpanded, setSignalMobileExpanded] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [pickingOnMap, setPickingOnMap] = useState(false);
+  const [pickedCoords, setPickedCoords] = useState(null);
 
   const {
-    places,
+    places: apiPlaces,
     featuredPlaces,
     popularPlaces,
     channels,
@@ -33,6 +38,18 @@ function App() {
     loading,
     error,
   } = useExploreData();
+
+  const {
+    suggestedPlaces,
+    addSuggestedPlace,
+    removeSuggestedPlace,
+  } = useSuggestedPlaces();
+
+  // Suggested waypoints enter the map, search, and navigation automatically
+  const places = useMemo(
+    () => [...suggestedPlaces, ...apiPlaces],
+    [suggestedPlaces, apiPlaces]
+  );
 
   const gps = useGpsTracking({
     map: mapInstance,
@@ -45,7 +62,26 @@ function App() {
     gps,
   });
 
+  function closeSuggest() {
+    setSuggestOpen(false);
+    setPickingOnMap(false);
+    setPickedCoords(null);
+  }
+
+  function handleOpenSuggest() {
+    if (nav.navActive) return;
+    setSelectedPlace(null);
+    setExploreMobileExpanded(false);
+    setSignalMobileExpanded(false);
+    setActiveTab(null);
+    nav.closeNavPicker();
+    setPickingOnMap(false);
+    setSuggestOpen(true);
+  }
+
   function handleTabChange(nextTab) {
+    closeSuggest();
+
     if (nextTab === 'explore' && activeTab === 'explore') {
       if (window.innerWidth < 768 && !exploreMobileExpanded) {
         setExploreMobileExpanded(true);
@@ -77,6 +113,7 @@ function App() {
 
   function handleNavigateAction(action) {
     if (action === 'navigate') {
+      closeSuggest();
       setSelectedPlace(null);
       setExploreMobileExpanded(false);
       setSignalMobileExpanded(false);
@@ -86,6 +123,8 @@ function App() {
   }
 
   function handleSelectPlace(place) {
+    if (pickingOnMap) return;
+    closeSuggest();
     setSelectedPlace(place);
     if (place) {
       setActiveTab(null);
@@ -98,6 +137,7 @@ function App() {
   }
 
   function handleNavigateToPlace(place) {
+    closeSuggest();
     setSelectedPlace(null);
     setExploreMobileExpanded(false);
     setSignalMobileExpanded(false);
@@ -105,20 +145,33 @@ function App() {
     nav.openNavPicker(place);
   }
 
+  function handleMapClick(latlng) {
+    if (pickingOnMap && latlng) {
+      setPickedCoords({ lat: latlng.lat, lng: latlng.lng });
+      setPickingOnMap(false);
+      return;
+    }
+    setSelectedPlace(null);
+  }
+
   const showDestPanel = nav.destPanelOpen && !nav.navActive;
+  const showSuggestPanel = suggestOpen && !nav.navActive;
   const desktopPanelOpen =
     !nav.navActive &&
     (activeTab === 'explore' ||
       activeTab === 'signal' ||
       showDestPanel ||
+      (showSuggestPanel && !pickingOnMap) ||
       Boolean(selectedPlace));
 
   return (
     <div className="map-workspace">
       <BaseMap
         selectedPlace={selectedPlace}
+        pickingLocation={pickingOnMap}
+        pickedCoords={showSuggestPanel ? pickedCoords : null}
         onMapReady={setMapInstance}
-        onMapClick={() => setSelectedPlace(null)}
+        onMapClick={handleMapClick}
       />
 
       <WaypointMarkers
@@ -133,10 +186,11 @@ function App() {
         navActive={nav.navActive}
         onTabChange={handleTabChange}
         onNavigateAction={handleNavigateAction}
+        onSuggestClick={handleOpenSuggest}
       />
 
       <ExplorePanel
-        open={!nav.navActive && activeTab === 'explore'}
+        open={!nav.navActive && !showSuggestPanel && activeTab === 'explore'}
         mobileExpanded={exploreMobileExpanded}
         onExpandMobile={() => setExploreMobileExpanded(true)}
         onClose={() => {
@@ -155,7 +209,7 @@ function App() {
       />
 
       <SignalPanel
-        open={!nav.navActive && activeTab === 'signal'}
+        open={!nav.navActive && !showSuggestPanel && activeTab === 'signal'}
         activeBars={gps.activeBars}
         tier={gps.tier}
         badgeText={gps.badgeText}
@@ -175,6 +229,27 @@ function App() {
           setSignalMobileExpanded(false);
           setActiveTab(null);
         }}
+      />
+
+      <SuggestPanel
+        open={showSuggestPanel}
+        pickingOnMap={pickingOnMap}
+        pickedCoords={pickedCoords}
+        userCoords={gps.lastCoords}
+        submissions={suggestedPlaces}
+        onStartPickOnMap={() => setPickingOnMap(true)}
+        onCancelPickOnMap={() => setPickingOnMap(false)}
+        onClearPickedCoords={() => setPickedCoords(null)}
+        onSubmitPlace={addSuggestedPlace}
+        onSelectSubmission={(place) => {
+          closeSuggest();
+          setSelectedPlace(place);
+        }}
+        onDeleteSubmission={(id) => {
+          removeSuggestedPlace(id);
+          if (selectedPlace?.id === id) setSelectedPlace(null);
+        }}
+        onClose={closeSuggest}
       />
 
       <NavDestPanel
@@ -238,7 +313,7 @@ function App() {
         />
       )}
 
-      {!nav.navActive && (
+      {!nav.navActive && !pickingOnMap && (
         <SearchBar
           places={places}
           panelOpen={desktopPanelOpen}

@@ -34,12 +34,15 @@ function applyZoomTierClass(container, zoom) {
 export default function BaseMap({
   basemapId = DEFAULT_BASEMAP_ID,
   selectedPlace = null,
+  pickingLocation = false,
+  pickedCoords = null,
   onMapReady,
   onMapClick,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
+  const pickMarkerRef = useRef(null);
   const onMapReadyRef = useRef(onMapReady);
   const onMapClickRef = useRef(onMapClick);
 
@@ -107,8 +110,8 @@ export default function BaseMap({
     handleZoomClass();
     map.on('zoomend', handleZoomClass);
 
-    const handleMapClick = () => {
-      onMapClickRef.current?.();
+    const handleMapClick = (event) => {
+      onMapClickRef.current?.(event?.latlng || null);
     };
     map.on('click', handleMapClick);
 
@@ -173,10 +176,44 @@ export default function BaseMap({
     });
   }, [selectedPlace]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+
+    if (pickMarkerRef.current) {
+      map.removeLayer(pickMarkerRef.current);
+      pickMarkerRef.current = null;
+    }
+
+    if (
+      pickedCoords &&
+      Number.isFinite(pickedCoords.lat) &&
+      Number.isFinite(pickedCoords.lng)
+    ) {
+      pickMarkerRef.current = L.marker([pickedCoords.lat, pickedCoords.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="mbf-nav-dest-pin"></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        }),
+        interactive: false,
+      }).addTo(map);
+    }
+
+    return () => {
+      if (pickMarkerRef.current && mapRef.current) {
+        mapRef.current.removeLayer(pickMarkerRef.current);
+        pickMarkerRef.current = null;
+      }
+    };
+  }, [pickedCoords]);
+
   return (
     <div
       ref={containerRef}
       className={styles.mapWrap}
+      style={pickingLocation ? { cursor: 'crosshair' } : undefined}
       aria-label="Interactive FUTA campus map"
     />
   );
