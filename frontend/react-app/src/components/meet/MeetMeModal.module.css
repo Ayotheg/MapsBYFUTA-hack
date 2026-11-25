@@ -1,0 +1,654 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background-color: rgba(16, 24, 40, 0.36);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: default;
+}
+
+/* ── Host Lobby Card ───────────────────────────────────────────── */
+.hostCard {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: 22px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: modalIn var(--duration-base) var(--ease-standard);
+}
+
+.hostHead,
+.joinHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background-color: var(--color-primary-tint);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 680px) {
+  .columns {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+/* Left Invite Box */
+.inviteBox {
+  background-color: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inviteTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.boxLabel {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.codeDisplay {
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-ink);
+}
+
+.copyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copyPill:hover {
+  border-color: var(--color-primary-outline);
+}
+
+.shareBtn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+
+.shareBtn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.shareRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.waBtn,
+.linkCopyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.waBtn {
+  border: none;
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+}
+
+.waBtn:hover {
+  background-color: var(--color-primary-outline);
+}
+
+.linkCopyBtn {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  color: var(--color-ink);
+}
+
+.linkCopyBtn:hover {
+  border-color: var(--color-primary-outline);
+}
+
+.keepOpenNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.keepOpenNote svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* Right People & Meeting Point Box */
+.infoBox {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.peopleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.peopleCount {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.waitingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.waitingCircle {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  border: 1.5px dashed var(--color-border);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.waitingText {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.peopleList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.personRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.personAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.personName {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.personStatus {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
+
+.meetingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.meetingPin {
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+}
+
+.meetingBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.meetingVal {
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.setPlaceBtn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.setPlaceBtn:hover {
+  color: var(--color-primary-hover);
+}
+
+.placePicker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pickerSearch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.pickerSearch input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.pickerItem {
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.pickerItem:hover {
+  background-color: var(--color-surface-alt);
+  color: var(--color-primary);
+}
+
+.goMeetingBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.goMeetingBtn:hover {
+  background-color: var(--color-primary-outline);
+}
+
+.hostFooter {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.switchLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switchLink:hover {
+  color: var(--color-primary);
+}
+
+/* ── Join with a code Card ─────────────────────────────────────── */
+.joinCard {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 390px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: 22px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalIn var(--duration-base) var(--ease-standard);
+}
+
+.joinEyebrow {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.joinForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.codeLabel {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.codeInput {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--color-primary);
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.codeInput::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.joinBtn {
+  width: 100%;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 18px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+
+.joinBtn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.joinBtn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.errorText {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-error-tint);
+  color: var(--color-error);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Active Floating Pill ──────────────────────────────────────── */
+.activeBar {
+  position: fixed;
+  top: calc(16px + var(--safe-top));
+  right: 16px;
+  z-index: 2180;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.activeBarMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.activeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-secondary);
+}
+
+.activeBarCode {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.activeBarMeta {
+  color: var(--color-text-muted);
+}
+
+.activeBarNavBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.activeBarLeaveBtn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.activeBarLeaveBtn:hover {
+  background-color: var(--color-error-tint);
+  color: var(--color-error);
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hostCard,
+  .joinCard {
+    animation: none;
+  }
+}

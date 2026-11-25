@@ -47,10 +47,11 @@ export function useExploreData() {
   useEffect(() => {
     if (!isExploreApiConfigured()) return undefined;
 
-    const controller = new AbortController();
+    let cancelled = false;
 
-    fetchExplorePayload({ signal: controller.signal })
+    fetchExplorePayload()
       .then((payload) => {
+        if (cancelled) return;
         const nextPlaces =
           payload.places.length > 0 ? payload.places : SAMPLE_PLACES;
         const featuredCount = Math.min(5, Math.max(3, nextPlaces.length));
@@ -82,12 +83,14 @@ export function useExploreData() {
         setLoading(false);
       })
       .catch((err) => {
-        if (err.name === 'AbortError') return;
+        if (cancelled || err.name === 'AbortError') return;
         setError(err.message || 'Could not load Explore data');
         setLoading(false);
       });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [refreshTick]);
 
   return {

@@ -3,7 +3,6 @@ import {
   CirclePlus,
   CircleUser,
   Compass,
-  Flag,
   Layers,
   Navigation,
   Plus,
@@ -31,8 +30,7 @@ const MOBILE_TABS = [
 
 const NAV_MENU_ITEMS = [
   { key: 'navigate', label: 'Navigate', Icon: Navigation, tone: 'primary' },
-  { key: 'meet', label: 'Meet a friend', Icon: Users, tone: 'primary' },
-  { key: 'race', label: 'Race to a place', Icon: Flag, tone: 'teal' },
+  { key: 'meet', label: 'Meet me', Icon: Users, tone: 'primary' },
 ];
 
 /**

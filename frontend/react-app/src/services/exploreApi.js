@@ -3,11 +3,13 @@ const RAW_API_URL = import.meta.env.VITE_EXPLORE_API_URL?.trim() || '';
 const EXPLORE_API_URL = RAW_API_URL || DEFAULT_API_URL;
 const EXPLORE_API_KEY = import.meta.env.VITE_EXPLORE_API_KEY?.trim() || '';
 
-const CACHE_KEY = 'mapsbyfuta_explore_api_v5';
+const CACHE_KEY = 'mapsbyfuta_explore_api_v6';
 const IMAGE_CACHE_KEY = 'mapsbyfuta_place_images_v1';
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const MAX_PAGES = 10;
+const MIN_RATE_LIMIT_RESERVE_FOR_IMAGES = 8;
 const placeImagesCache = new Map();
+let inFlightPayloadPromise = null;
 
 function loadPersistentImageCache() {
   try {
@@ -314,7 +316,12 @@ async function fetchAllPlacesPages(firstPageUrl, { signal } = {}) {
     }
 
     const nextOffset = json?.meta?.pagination?.next_offset;
-    if (nextOffset == null) {
+    const rateRemaining = json?.meta?.rate_limit_remaining;
+    if (
+      nextOffset == null ||
+      (typeof rateRemaining === 'number' &&
+        rateRemaining <= MIN_RATE_LIMIT_RESERVE_FOR_IMAGES)
+    ) {
       nextUrl = null;
     } else {
       nextUrl = buildOffsetUrl(firstPageUrl, nextOffset);
@@ -377,7 +384,7 @@ export async function fetchPlaceImageUrl(placeId, { signal } = {}) {
  * hydrates photos for up to 4 Featured and top 4 Popular places (max 8 calls),
  * and caches in localStorage (30 min TTL) so dev reloads don't burn credits.
  */
-export async function fetchExplorePayload({ signal, bypassCache = false } = {}) {
+export async function fetchExplorePayload({ bypassCache = false } = {}) {
   if (!isExploreApiConfigured()) {
     return {
       configured: false,
@@ -390,102 +397,155 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
     };
   }
 
-  const { placesUrl } = buildEndpoints(EXPLORE_API_URL);
+  if (!bypassCache && inFlightPayloadPromise) {
+    return inFlightPayloadPromise;
+  }
 
-  const applyKnownImage = (place) => {
-    if (place.image) return place;
-    const cachedUrls = placeImagesCache.get(String(place.id));
-    return cachedUrls?.[0] ? { ...place, image: cachedUrls[0] } : place;
-  };
+  const run = async () => {
+    const { placesUrl } = buildEndpoints(EXPLORE_API_URL);
 
-  if (!bypassCache) {
-    try {
-      const cachedRaw = localStorage.getItem(CACHE_KEY);
-      if (cachedRaw) {
-        const cached = JSON.parse(cachedRaw);
-        const fresh =
-          cached?.savedAt && Date.now() - cached.savedAt < CACHE_TTL_MS;
-        if (fresh && cached?.placesUrl === placesUrl && Array.isArray(cached.places)) {
-          return {
-            configured: true,
-            places: cached.places.map(applyKnownImage),
-            featuredPlaces: (cached.featuredPlaces || []).map(applyKnownImage),
-            popularPlaces: (cached.popularPlaces || []).map(applyKnownImage),
-            channels: cached.channels || [],
-            events: cached.events || [],
-            people: cached.people || [],
-          };
+    const applyKnownImage = (place) => {
+      if (place.image) return place;
+      const cachedUrls = placeImagesCache.get(String(place.id));
+      return cachedUrls?.[0] ? { ...place, image: cachedUrls[0] } : place;
+    };
+
+    if (!bypassCache) {
+      try {
+        const cachedRaw = localStorage.getItem(CACHE_KEY);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          const fresh =
+            cached?.savedAt && Date.now() - cached.savedAt < CACHE_TTL_MS;
+          if (fresh && cached?.placesUrl === placesUrl && Array.isArray(cached.places)) {
+            let places = cached.places.map(applyKnownImage);
+            let featuredPlaces = (cached.featuredPlaces || []).map(applyKnownImage);
+            let popularPlaces = (cached.popularPlaces || []).map(applyKnownImage);
+
+            // If cached featured/popular still lack images, hydrate up to 6 now
+            const missingIds = Array.from(
+              new Set(
+                [...featuredPlaces.slice(0, 4), ...popularPlaces.slice(0, 4)]
+                  .filter((p) => !p.image && p.imageCount > 0)
+                  .map((p) => p.id)
+              )
+            ).slice(0, 6);
+
+            if (missingIds.length > 0) {
+              const recovered = new Map();
+              for (const id of missingIds) {
+                const url = await fetchPlaceImageUrl(id);
+                if (url) recovered.set(id, url);
+              }
+              if (recovered.size > 0) {
+                const patch = (p) =>
+                  recovered.has(p.id) ? { ...p, image: recovered.get(p.id) } : p;
+                places = places.map(patch);
+                featuredPlaces = featuredPlaces.map(patch);
+                popularPlaces = popularPlaces.map(patch);
+                try {
+                  localStorage.setItem(
+                    CACHE_KEY,
+                    JSON.stringify({
+                      ...cached,
+                      places,
+                      featuredPlaces,
+                      popularPlaces,
+                    })
+                  );
+                } catch {
+                  // Ignore storage errors
+                }
+              }
+            }
+
+            return {
+              configured: true,
+              places,
+              featuredPlaces,
+              popularPlaces,
+              channels: cached.channels || [],
+              events: cached.events || [],
+              people: cached.people || [],
+            };
+          }
         }
+      } catch {
+        // Ignore storage read errors
       }
+    }
+
+    const { rawPlaces, rawChannels, rawEvents, rawPeople } =
+      await fetchAllPlacesPages(placesUrl);
+
+    const places = rawPlaces.map(normalizePlace).map(applyKnownImage);
+    const channels = rawChannels.map(normalizeChannel);
+    const events = rawEvents.map(normalizeEvent);
+    const people = rawPeople.map(normalizePerson);
+
+    const featuredCount = Math.min(5, Math.max(3, places.length));
+    const initialFeatured = pickFeaturedPlaces(places, featuredCount);
+    const featuredIds = new Set(initialFeatured.map((place) => place.id));
+    const initialPopular = rankPopularPlaces(places, featuredIds);
+
+    const candidatesForPhoto = [
+      ...initialFeatured.slice(0, 4),
+      ...initialPopular.slice(0, 4),
+    ].filter((place) => !place.image && place.imageCount > 0);
+
+    const uniquePhotoIds = Array.from(
+      new Set(candidatesForPhoto.map((place) => place.id))
+    ).slice(0, 6);
+
+    const photoMap = new Map();
+    for (const id of uniquePhotoIds) {
+      const url = await fetchPlaceImageUrl(id);
+      if (url) {
+        photoMap.set(id, url);
+      }
+    }
+
+    const applyPhoto = (place) =>
+      photoMap.has(place.id) ? { ...place, image: photoMap.get(place.id) } : place;
+
+    const hydratedPlaces = places.map(applyPhoto);
+    const featuredPlaces = initialFeatured.map(applyPhoto);
+    const popularPlaces = initialPopular.map(applyPhoto);
+
+    try {
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({
+          savedAt: Date.now(),
+          placesUrl,
+          places: hydratedPlaces,
+          featuredPlaces,
+          popularPlaces,
+          channels,
+          events,
+          people,
+        })
+      );
     } catch {
-      // Ignore storage read errors
+      // Ignore storage write errors
     }
-  }
 
-  const { rawPlaces, rawChannels, rawEvents, rawPeople } =
-    await fetchAllPlacesPages(placesUrl, { signal });
-
-  const places = rawPlaces.map(normalizePlace).map(applyKnownImage);
-  const channels = rawChannels.map(normalizeChannel);
-  const events = rawEvents.map(normalizeEvent);
-  const people = rawPeople.map(normalizePerson);
-
-  const featuredCount = Math.min(5, Math.max(3, places.length));
-  const initialFeatured = pickFeaturedPlaces(places, featuredCount);
-  const featuredIds = new Set(initialFeatured.map((place) => place.id));
-  const initialPopular = rankPopularPlaces(places, featuredIds);
-
-  const candidatesForPhoto = [
-    ...initialFeatured.slice(0, 4),
-    ...initialPopular.slice(0, 4),
-  ].filter((place) => !place.image && place.imageCount > 0);
-
-  const uniquePhotoIds = Array.from(
-    new Set(candidatesForPhoto.map((place) => place.id))
-  ).slice(0, 6);
-
-  const photoMap = new Map();
-  // Hydrate sequentially in small batches to avoid hitting the 20 req/min API rate limit
-  for (const id of uniquePhotoIds) {
-    if (signal?.aborted) break;
-    const url = await fetchPlaceImageUrl(id, { signal });
-    if (url) {
-      photoMap.set(id, url);
-    }
-  }
-
-  const applyPhoto = (place) =>
-    photoMap.has(place.id) ? { ...place, image: photoMap.get(place.id) } : place;
-
-  const hydratedPlaces = places.map(applyPhoto);
-  const featuredPlaces = initialFeatured.map(applyPhoto);
-  const popularPlaces = initialPopular.map(applyPhoto);
-
-  try {
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({
-        savedAt: Date.now(),
-        placesUrl,
-        places: hydratedPlaces,
-        featuredPlaces,
-        popularPlaces,
-        channels,
-        events,
-        people,
-      })
-    );
-  } catch {
-    // Ignore storage write errors
-  }
-
-  return {
-    configured: true,
-    places: hydratedPlaces,
-    featuredPlaces,
-    popularPlaces,
-    channels,
-    events,
-    people,
+    return {
+      configured: true,
+      places: hydratedPlaces,
+      featuredPlaces,
+      popularPlaces,
+      channels,
+      events,
+      people,
+    };
   };
+
+  const promise = run().finally(() => {
+    if (inFlightPayloadPromise === promise) {
+      inFlightPayloadPromise = null;
+    }
+  });
+  inFlightPayloadPromise = promise;
+  return promise;
 }

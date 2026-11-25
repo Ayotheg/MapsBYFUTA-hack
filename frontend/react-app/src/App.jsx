@@ -3,6 +3,7 @@ import BaseMap from './components/BaseMap';
 import { EventCard } from './components/events';
 import ExplorePanel from './components/explore/ExplorePanel';
 import WaypointMarkers from './components/map/WaypointMarkers';
+import { MeetMeModal } from './components/meet';
 import Navbar from './components/Navbar';
 import {
   ArrivalModal,
@@ -15,6 +16,7 @@ import { SuggestPanel } from './components/suggest';
 import PlaceCard from './components/waypoints/PlaceCard';
 import { useExploreData } from './hooks/useExploreData';
 import { useGpsTracking } from './hooks/useGpsTracking';
+import { useMeetMe } from './hooks/useMeetMe';
 import { useNavigation } from './hooks/useNavigation';
 import { useSuggestedPlaces } from './hooks/useSuggestedPlaces';
 import './App.css';
@@ -62,6 +64,11 @@ function App() {
     map: mapInstance,
     places,
     gps,
+  });
+
+  const meet = useMeetMe({
+    map: mapInstance,
+    userCoords: gps.lastCoords,
   });
 
   function closeSuggest() {
@@ -118,11 +125,25 @@ function App() {
   function handleNavigateAction(action) {
     if (action === 'navigate') {
       closeSuggest();
+      meet.closeModal();
       setSelectedPlace(null);
+      setSelectedEvent(null);
       setExploreMobileExpanded(false);
       setSignalMobileExpanded(false);
       setActiveTab('navigate');
       nav.openNavPicker();
+      return;
+    }
+
+    if (action === 'meet') {
+      closeSuggest();
+      nav.closeNavPicker();
+      setSelectedPlace(null);
+      setSelectedEvent(null);
+      setExploreMobileExpanded(false);
+      setSignalMobileExpanded(false);
+      setActiveTab(null);
+      meet.openHostLobby();
     }
   }
 
@@ -219,6 +240,7 @@ function App() {
       <Navbar
         activeTab={nav.navActive || showDestPanel ? 'navigate' : activeTab}
         navActive={nav.navActive}
+        navDot={Boolean(meet.session)}
         onTabChange={handleTabChange}
         onNavigateAction={handleNavigateAction}
         onSuggestClick={handleOpenSuggest}
@@ -331,6 +353,28 @@ function App() {
           onSelectNearby={(place) => setSelectedPlace(place)}
         />
       )}
+
+      <MeetMeModal
+        open={meet.modalOpen && !nav.navActive}
+        mode={meet.mode}
+        session={meet.session}
+        minutesLeft={meet.minutesLeft}
+        joinError={meet.joinError}
+        places={places}
+        popularPlaces={popularPlaces}
+        onModeChange={meet.setMode}
+        onJoinCode={meet.joinWithCode}
+        onClearJoinError={() => meet.setJoinError('')}
+        onSetMeetingPoint={meet.setMeetingPoint}
+        onNavigateToMeetingPoint={(meetingPoint) => {
+          meet.closeModal();
+          setActiveTab('navigate');
+          nav.openNavPicker(meetingPoint);
+        }}
+        onOpenModal={meet.openHostLobby}
+        onClose={meet.closeModal}
+        onLeave={meet.leaveSession}
+      />
 
       <ArrivalModal
         open={Boolean(nav.arrivedDest)}
