@@ -3,6 +3,7 @@ import BaseMap from './components/BaseMap';
 import { EventCard } from './components/events';
 import ExplorePanel from './components/explore/ExplorePanel';
 import WaypointMarkers from './components/map/WaypointMarkers';
+import ZoomHintOverlay from './components/map/ZoomHintOverlay';
 import { MeetMeModal } from './components/meet';
 import Navbar from './components/Navbar';
 import {
@@ -235,6 +236,11 @@ function App() {
         places={places}
         selectedPlaceId={selectedPlace?.id ?? null}
         onSelectPlace={handleSelectPlace}
+      />
+
+      <ZoomHintOverlay
+        map={mapInstance}
+        hidden={nav.navActive || meet.modalOpen || showSuggestPanel || pickingOnMap}
       />
 
       <Navbar
