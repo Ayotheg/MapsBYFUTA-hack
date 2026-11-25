@@ -791,8 +791,92 @@
   cursor: pointer;
 }
 
+.mobileOnlyBlock {
+  display: none;
+}
+
+/* ── Promote CTA cards (end of Featured Places & Events rails) ──── */
+.promoteCard {
+  flex-shrink: 0;
+  border-radius: var(--radius-xl);
+  border: 1.5px dashed var(--color-primary-outline);
+  background-color: var(--color-surface);
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.promoteCard:hover {
+  background-color: var(--color-surface-alt);
+  border-color: var(--color-primary);
+}
+
+.promotePlaceCard {
+  width: 176px;
+  height: 138px;
+}
+
+.promoteEventCard {
+  width: 188px;
+  min-height: 204px;
+  align-self: stretch;
+}
+
+.promoteIconBadge {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promoteCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.promoteTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-ink);
+}
+
+.promoteSubtitle {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+}
+
+.promoteCta {
+  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
 /* ── Mobile bottom sheet layout ────────────────────────────────── */
 @media (max-width: 767px) {
+  .mobileOnlyBlock {
+    display: block;
+  }
   .mobileScrim {
     display: block;
     position: fixed;
@@ -861,6 +945,11 @@
 
   .featuredPlaceCard {
     width: 224px;
+    height: 146px;
+  }
+
+  .promotePlaceCard {
+    width: 184px;
     height: 146px;
   }
 }

@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { LeafletTouchZoom } from './map/leafletSetup';
+import 'leaflet-rotate';
+import './map/navLayers.css';
 import {
   DEFAULT_BASEMAP_ID,
   FUTA_BOUNDS,
@@ -25,9 +28,8 @@ function applyZoomTierClass(container, zoom) {
 }
 
 /**
- * Full-bleed Leaflet base map centered on FUTA campus.
- * Stamps zoom-tier classes onto the map container and flies smoothly to
- * any selected waypoint.
+ * Full-bleed Leaflet base map centered on FUTA campus with leaflet-rotate
+ * support for turn-by-turn route-up / north-up rotation.
  */
 export default function BaseMap({
   basemapId = DEFAULT_BASEMAP_ID,
@@ -60,8 +62,21 @@ export default function BaseMap({
       maxZoom: 19,
       preferCanvas: true,
       zoomControl: false,
+      rotate: true,
+      bearing: 0,
+      rotateControl: false,
+      touchRotate: false,
+      shiftKeyRotate: false,
     });
     mapRef.current = map;
+
+    if (Array.isArray(map._handlers)) {
+      map._handlers.forEach((handler) => {
+        if (handler instanceof LeafletTouchZoom && handler !== map.touchZoom) {
+          handler.disable();
+        }
+      });
+    }
 
     if (window.innerWidth >= 768) {
       L.control.zoom({ position: 'bottomright' }).addTo(map);

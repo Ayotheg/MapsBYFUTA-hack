@@ -190,20 +190,22 @@
   color: var(--color-primary);
 }
 
-/* ── Floating map utility buttons ──────────────────────────────── */
+/* ── Floating map utility rings (North + Nearby) ───────────────── */
 .mapActions {
   position: fixed;
   right: 16px;
   bottom: calc(80px + var(--safe-bottom) + 124px);
-  z-index: 2200;
+  z-index: 2210;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
 }
 
 .mapActionBtn {
-  width: 42px;
-  height: 42px;
+  position: relative;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   border: 1px solid var(--color-border);
   background-color: var(--color-white);
@@ -215,12 +217,9 @@
   cursor: pointer;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);
-}
-
-.mapActionBtn:first-child {
-  color: var(--color-primary);
 }
 
 .mapActionBtn:hover {
@@ -229,6 +228,207 @@
 
 .mapActionBtn:active {
   transform: scale(0.95);
+}
+
+/* North / Route-Up compass ring */
+.northBtn {
+  color: var(--color-primary);
+}
+
+.northBtnNorthUp {
+  background-color: var(--color-primary-tint);
+  border-color: var(--color-primary-outline);
+  color: var(--color-primary-hover);
+}
+
+.northInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.northLetter {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: -1px;
+}
+
+/* Nearby places ring & popover */
+.nearbyWrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+}
+
+.nearbyBtnOpen {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.nearbyBtnOpen:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.nearbyBtnPulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-primary-outline);
+  animation: nearbyRingPulse 2.2s ease-out infinite;
+  pointer-events: none;
+}
+
+.nearbyBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: 2px solid var(--color-white);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nearbyBtnOpen .nearbyBadge {
+  background-color: var(--color-ink);
+}
+
+.nearbyPopover {
+  position: absolute;
+  right: 54px;
+  bottom: 0;
+  width: min(268px, calc(100vw - 88px));
+  max-height: 280px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: popoverFadeIn var(--duration-fast) var(--ease-standard);
+}
+
+.nearbyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--color-surface-alt);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nearbyTitle {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.nearbyClose {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nearbyClose:hover {
+  background-color: var(--color-border);
+  color: var(--color-ink);
+}
+
+.nearbyEmpty {
+  margin: 0;
+  padding: 16px 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.nearbyList {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nearbyItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.nearbyItem:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.nearbyPin {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nearbyMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nearbyName {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nearbySub {
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 @media (min-width: 768px) {
@@ -337,9 +537,33 @@
   }
 }
 
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes nearbyRingPulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .topCard,
-  .distCard {
+  .distCard,
+  .nearbyPopover,
+  .nearbyBtnPulse::after {
     animation: none;
   }
 }

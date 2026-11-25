@@ -11,6 +11,8 @@ import {
   Home,
   Landmark,
   MapPin,
+  Megaphone,
+  MoveUpRight,
   PartyPopper,
   Printer,
   Sparkles,
@@ -104,6 +106,8 @@ export default function ExplorePanel({
   error = null,
   onSelectPlace,
   onSuggestClick,
+  onPromotePlace,
+  onPromoteEvent,
 }) {
   const [activeTab, setActiveTab] = useState('places');
   const [placeFilter, setPlaceFilter] = useState('all');
@@ -258,7 +262,7 @@ export default function ExplorePanel({
 
           {/* PLACES TAB (also shown in mobile compact preview) */}
           {(activeTab === 'places' || !mobileExpanded) && (
-            <>
+            <div className={activeTab !== 'places' ? styles.mobileOnlyBlock : undefined}>
               <div className={styles.desktopFilterArea}>
                 <div className={styles.chipRow}>
                   <button
@@ -393,6 +397,26 @@ export default function ExplorePanel({
                       </button>
                     );
                   })}
+
+                  <button
+                    type="button"
+                    className={`${styles.promoteCard} ${styles.promotePlaceCard}`}
+                    onClick={() => onPromotePlace?.()}
+                  >
+                    <span className={styles.promoteIconBadge} aria-hidden="true">
+                      <Megaphone size={18} strokeWidth={2} />
+                    </span>
+                    <span className={styles.promoteCopy}>
+                      <span className={styles.promoteTitle}>Promote your spot</span>
+                      <span className={styles.promoteSubtitle}>
+                        Get featured for students exploring FUTA.
+                      </span>
+                      <span className={styles.promoteCta}>
+                        <span>Get started</span>
+                        <MoveUpRight size={13} strokeWidth={2.2} aria-hidden="true" />
+                      </span>
+                    </span>
+                  </button>
                 </div>
               </section>
 
@@ -475,12 +499,12 @@ export default function ExplorePanel({
                   })}
                 </div>
               </section>
-            </>
+            </div>
           )}
 
           {/* PEOPLE TAB */}
-          {mobileExpanded && activeTab === 'people' && (
-            <>
+          {activeTab === 'people' && (
+            <div className={!mobileExpanded ? styles.desktopOnlyBlock : undefined}>
               <section className={styles.section}>
                 <div className={styles.sectionHead}>
                   <h3 className={styles.sectionTitle}>Featured people</h3>
@@ -538,12 +562,12 @@ export default function ExplorePanel({
                   </div>
                 </section>
               )}
-            </>
+            </div>
           )}
 
           {/* CHANNELS TAB */}
-          {mobileExpanded && activeTab === 'channels' && (
-            <>
+          {activeTab === 'channels' && (
+            <div className={!mobileExpanded ? styles.desktopOnlyBlock : undefined}>
               <section className={styles.section}>
                 <div className={styles.sectionHead}>
                   <h3 className={styles.sectionTitle}>Featured channels</h3>
@@ -635,12 +659,12 @@ export default function ExplorePanel({
                   ))}
                 </div>
               </section>
-            </>
+            </div>
           )}
 
           {/* EVENTS TAB */}
-          {mobileExpanded && activeTab === 'events' && (
-            <>
+          {activeTab === 'events' && (
+            <div className={!mobileExpanded ? styles.desktopOnlyBlock : undefined}>
               <div className={styles.chipRow}>
                 {EVENT_FILTER_TABS.map((label) => (
                   <button
@@ -662,66 +686,80 @@ export default function ExplorePanel({
                   <span className={styles.seeAllStatic}>See all</span>
                 </div>
 
-                {featuredEvents.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    No events match "{eventFilter}".
-                  </div>
-                ) : (
-                  <div className={styles.rail}>
-                    {featuredEvents.map((event) => (
-                      <div key={event.id} className={styles.eventCard}>
-                        <div className={styles.eventPosterWrap}>
-                          <ImageSlot
-                            src={event.poster}
-                            alt={event.title}
-                            className={styles.eventPosterMedia}
-                            fallback={
-                              <span className={styles.photoPlaceholder}>
-                                <PartyPopper
-                                  size={20}
-                                  strokeWidth={1.8}
-                                  aria-hidden="true"
-                                />
-                                <span>[Event poster]</span>
-                              </span>
-                            }
-                          />
-
-                          <span className={styles.dateBadge}>
-                            <span className={styles.dateMonth}>{event.month}</span>
-                            <span className={`${styles.dateDay} tabular-nums`}>
-                              {event.day}
+                <div className={styles.rail}>
+                  {featuredEvents.map((event) => (
+                    <div key={event.id} className={styles.eventCard}>
+                      <div className={styles.eventPosterWrap}>
+                        <ImageSlot
+                          src={event.poster}
+                          alt={event.title}
+                          className={styles.eventPosterMedia}
+                          fallback={
+                            <span className={styles.photoPlaceholder}>
+                              <PartyPopper
+                                size={20}
+                                strokeWidth={1.8}
+                                aria-hidden="true"
+                              />
+                              <span>[Event poster]</span>
                             </span>
-                          </span>
+                          }
+                        />
 
-                          <span
-                            className={`${styles.pricePill} ${
-                              event.isFree ? styles.pricePillFree : ''
-                            }`}
-                          >
-                            {event.priceLabel}
+                        <span className={styles.dateBadge}>
+                          <span className={styles.dateMonth}>{event.month}</span>
+                          <span className={`${styles.dateDay} tabular-nums`}>
+                            {event.day}
                           </span>
+                        </span>
+
+                        <span
+                          className={`${styles.pricePill} ${
+                            event.isFree ? styles.pricePillFree : ''
+                          }`}
+                        >
+                          {event.priceLabel}
+                        </span>
+                      </div>
+
+                      <div className={styles.eventCardBody}>
+                        <div className={styles.eventTitle}>{event.title}</div>
+                        <div className={styles.eventMetaLine}>
+                          <Clock size={13} strokeWidth={2} aria-hidden="true" />
+                          <span>{event.time}</span>
                         </div>
-
-                        <div className={styles.eventCardBody}>
-                          <div className={styles.eventTitle}>{event.title}</div>
-                          <div className={styles.eventMetaLine}>
-                            <Clock size={13} strokeWidth={2} aria-hidden="true" />
-                            <span>{event.time}</span>
-                          </div>
-                          <div className={styles.eventMetaLine}>
-                            {event.isOnline ? (
-                              <Video size={13} strokeWidth={2} aria-hidden="true" />
-                            ) : (
-                              <MapPin size={13} strokeWidth={2} aria-hidden="true" />
-                            )}
-                            <span>{event.venue}</span>
-                          </div>
+                        <div className={styles.eventMetaLine}>
+                          {event.isOnline ? (
+                            <Video size={13} strokeWidth={2} aria-hidden="true" />
+                          ) : (
+                            <MapPin size={13} strokeWidth={2} aria-hidden="true" />
+                          )}
+                          <span>{event.venue}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    className={`${styles.promoteCard} ${styles.promoteEventCard}`}
+                    onClick={() => onPromoteEvent?.()}
+                  >
+                    <span className={styles.promoteIconBadge} aria-hidden="true">
+                      <Megaphone size={18} strokeWidth={2} />
+                    </span>
+                    <span className={styles.promoteCopy}>
+                      <span className={styles.promoteTitle}>Add your event</span>
+                      <span className={styles.promoteSubtitle}>
+                        Free events are listed free.
+                      </span>
+                      <span className={styles.promoteCta}>
+                        <span>Get started</span>
+                        <MoveUpRight size={13} strokeWidth={2.2} aria-hidden="true" />
+                      </span>
+                    </span>
+                  </button>
+                </div>
               </section>
 
               <section className={styles.section}>
@@ -760,7 +798,7 @@ export default function ExplorePanel({
                   ))}
                 </div>
               </section>
-            </>
+            </div>
           )}
         </div>
 

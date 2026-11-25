@@ -2,7 +2,7 @@
   position: fixed;
   top: 16px;
   left: calc(var(--sidebar-rail-width) + 16px);
-  width: 396px;
+  width: 344px;
   max-height: calc(100dvh - 32px);
   z-index: 1200;
   background-color: var(--color-white);
