@@ -172,6 +172,7 @@ function App() {
   function handleNavigateAction(action) {
     if (action === 'navigate') {
       closeSuggest();
+      setPromoteOpen(false);
       meet.closeModal();
       setSelectedPlace(null);
       setSelectedEvent(null);
@@ -184,6 +185,7 @@ function App() {
 
     if (action === 'meet') {
       closeSuggest();
+      setPromoteOpen(false);
       nav.closeNavPicker();
       setSelectedPlace(null);
       setSelectedEvent(null);
@@ -197,6 +199,7 @@ function App() {
   function handleSelectPlace(place) {
     if (pickingOnMap) return;
     closeSuggest();
+    setPromoteOpen(false);
     setSelectedEvent(null);
     setSelectedPlace(place);
     if (place) {
@@ -212,6 +215,7 @@ function App() {
   function handleSelectEvent(event) {
     if (!event) return;
     closeSuggest();
+    setPromoteOpen(false);
     setSelectedPlace(null);
     setActiveTab(null);
     setExploreMobileExpanded(false);
@@ -288,7 +292,7 @@ function App() {
 
       <ZoomHintOverlay
         map={mapInstance}
-        hidden={nav.navActive || meet.modalOpen || showSuggestPanel || pickingOnMap}
+        hidden={nav.navActive || meet.modalOpen || showSuggestPanel || showPromotePanel || authOpen || pickingOnMap}
       />
 
       <Navbar
