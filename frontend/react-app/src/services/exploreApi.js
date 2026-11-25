@@ -3,10 +3,44 @@ const RAW_API_URL = import.meta.env.VITE_EXPLORE_API_URL?.trim() || '';
 const EXPLORE_API_URL = RAW_API_URL || DEFAULT_API_URL;
 const EXPLORE_API_KEY = import.meta.env.VITE_EXPLORE_API_KEY?.trim() || '';
 
-const CACHE_KEY = 'mapsbyfuta_explore_api_v3';
+const CACHE_KEY = 'mapsbyfuta_explore_api_v5';
+const IMAGE_CACHE_KEY = 'mapsbyfuta_place_images_v1';
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const MAX_PAGES = 10;
 const placeImagesCache = new Map();
+
+function loadPersistentImageCache() {
+  try {
+    const raw = localStorage.getItem(IMAGE_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      for (const [key, urls] of Object.entries(parsed)) {
+        if (Array.isArray(urls) && urls.length > 0 && !placeImagesCache.has(key)) {
+          placeImagesCache.set(key, urls);
+        }
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function savePersistentImageCache() {
+  try {
+    const obj = {};
+    for (const [key, urls] of placeImagesCache.entries()) {
+      if (Array.isArray(urls) && urls.length > 0) {
+        obj[key] = urls;
+      }
+    }
+    localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(obj));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+loadPersistentImageCache();
 
 function buildEndpoints(baseOrFullUrl) {
   const clean = baseOrFullUrl.replace(/\/+$/, '');
@@ -319,7 +353,10 @@ export async function fetchPlaceImages(placeId, { signal } = {}) {
           .map((item) => item?.url || item?.full_url)
           .filter((url) => typeof url === 'string' && url.trim())
       : [];
-    placeImagesCache.set(cacheKey, urls);
+    if (urls.length > 0) {
+      placeImagesCache.set(cacheKey, urls);
+      savePersistentImageCache();
+    }
     return urls;
   } catch {
     return [];
@@ -355,6 +392,12 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
 
   const { placesUrl } = buildEndpoints(EXPLORE_API_URL);
 
+  const applyKnownImage = (place) => {
+    if (place.image) return place;
+    const cachedUrls = placeImagesCache.get(String(place.id));
+    return cachedUrls?.[0] ? { ...place, image: cachedUrls[0] } : place;
+  };
+
   if (!bypassCache) {
     try {
       const cachedRaw = localStorage.getItem(CACHE_KEY);
@@ -365,9 +408,9 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
         if (fresh && cached?.placesUrl === placesUrl && Array.isArray(cached.places)) {
           return {
             configured: true,
-            places: cached.places,
-            featuredPlaces: cached.featuredPlaces || [],
-            popularPlaces: cached.popularPlaces || [],
+            places: cached.places.map(applyKnownImage),
+            featuredPlaces: (cached.featuredPlaces || []).map(applyKnownImage),
+            popularPlaces: (cached.popularPlaces || []).map(applyKnownImage),
             channels: cached.channels || [],
             events: cached.events || [],
             people: cached.people || [],
@@ -382,7 +425,7 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
   const { rawPlaces, rawChannels, rawEvents, rawPeople } =
     await fetchAllPlacesPages(placesUrl, { signal });
 
-  const places = rawPlaces.map(normalizePlace);
+  const places = rawPlaces.map(normalizePlace).map(applyKnownImage);
   const channels = rawChannels.map(normalizeChannel);
   const events = rawEvents.map(normalizeEvent);
   const people = rawPeople.map(normalizePerson);
@@ -399,21 +442,15 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
 
   const uniquePhotoIds = Array.from(
     new Set(candidatesForPhoto.map((place) => place.id))
-  ).slice(0, 8);
+  ).slice(0, 6);
 
   const photoMap = new Map();
-  if (uniquePhotoIds.length > 0) {
-    const settled = await Promise.allSettled(
-      uniquePhotoIds.map(async (id) => ({
-        id,
-        url: await fetchPlaceImageUrl(id, { signal }),
-      }))
-    );
-
-    for (const result of settled) {
-      if (result.status === 'fulfilled' && result.value.url) {
-        photoMap.set(result.value.id, result.value.url);
-      }
+  // Hydrate sequentially in small batches to avoid hitting the 20 req/min API rate limit
+  for (const id of uniquePhotoIds) {
+    if (signal?.aborted) break;
+    const url = await fetchPlaceImageUrl(id, { signal });
+    if (url) {
+      photoMap.set(id, url);
     }
   }
 

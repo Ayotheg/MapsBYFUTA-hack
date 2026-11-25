@@ -69,9 +69,10 @@ export default function PlaceCard({
   const placeId = place?.id;
   const placeImageCount = place?.imageCount || 0;
   const placeInitialImage = place?.image || null;
+  const placeInlineImages = place?.images;
 
   useEffect(() => {
-    if (!placeId) return undefined;
+    if (!placeId || place?.isUserSuggested) return undefined;
     if (placeImageCount <= 0 && !placeInitialImage) return undefined;
     if (placeImageCount <= 1 && placeInitialImage) return undefined;
 
@@ -83,16 +84,21 @@ export default function PlaceCard({
     });
 
     return () => controller.abort();
-  }, [placeId, placeImageCount, placeInitialImage]);
+  }, [placeId, place?.isUserSuggested, placeImageCount, placeInitialImage]);
 
   const photos = useMemo(() => {
     const merged = [];
     if (placeInitialImage) merged.push(placeInitialImage);
+    if (Array.isArray(placeInlineImages)) {
+      for (const url of placeInlineImages) {
+        if (url && !merged.includes(url)) merged.push(url);
+      }
+    }
     for (const url of fetchedPhotos) {
       if (url && !merged.includes(url)) merged.push(url);
     }
     return merged;
-  }, [placeInitialImage, fetchedPhotos]);
+  }, [placeInitialImage, placeInlineImages, fetchedPhotos]);
 
   if (!place) return null;
 

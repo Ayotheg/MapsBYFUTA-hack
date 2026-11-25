@@ -105,6 +105,7 @@ export default function ExplorePanel({
   loading = false,
   error = null,
   onSelectPlace,
+  onSelectEvent,
   onSuggestClick,
   onPromotePlace,
   onPromoteEvent,
@@ -688,7 +689,13 @@ export default function ExplorePanel({
 
                 <div className={styles.rail}>
                   {featuredEvents.map((event) => (
-                    <div key={event.id} className={styles.eventCard}>
+                    <button
+                      key={event.id}
+                      type="button"
+                      className={styles.eventCard}
+                      style={{ textAlign: 'left', cursor: 'pointer' }}
+                      onClick={() => onSelectEvent?.(event)}
+                    >
                       <div className={styles.eventPosterWrap}>
                         <ImageSlot
                           src={event.poster}
@@ -737,7 +744,7 @@ export default function ExplorePanel({
                           <span>{event.venue}</span>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
 
                   <button
@@ -770,7 +777,13 @@ export default function ExplorePanel({
 
                 <div className={styles.upcomingList}>
                   {upcomingEvents.map((event) => (
-                    <div key={event.id} className={styles.upcomingRow}>
+                    <button
+                      key={event.id}
+                      type="button"
+                      className={styles.upcomingRow}
+                      style={{ textAlign: 'left', cursor: 'pointer', width: '100%' }}
+                      onClick={() => onSelectEvent?.(event)}
+                    >
                       <span className={styles.upcomingDateBox}>
                         <span className={styles.dateMonth}>{event.month}</span>
                         <span className={`${styles.dateDay} tabular-nums`}>
@@ -794,7 +807,7 @@ export default function ExplorePanel({
                       <span className={styles.upcomingPrice}>
                         {event.priceLabel}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </section>
