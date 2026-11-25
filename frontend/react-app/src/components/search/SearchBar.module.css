@@ -185,14 +185,25 @@
 
 @media (max-width: 767px) {
   .container {
-    top: calc(14px + var(--safe-top));
+    top: calc(12px + var(--safe-top));
     left: 12px;
     right: 12px;
     max-width: none;
+    gap: 10px;
   }
 
   .pill {
-    height: 54px;
+    height: 56px;
+  }
+
+  .heartBtn {
+    width: 50px;
+  }
+
+  .navBtn {
+    width: 42px;
+    height: 42px;
+    margin: 0 7px;
   }
 
   .desktopInput,
@@ -202,6 +213,11 @@
 
   .mobileTrigger {
     display: flex;
+  }
+
+  .mobilePlaceholder,
+  .mobileValue {
+    font-size: 16px;
   }
 
   .mobileOverlay {
@@ -263,9 +279,9 @@
   .overlayInput {
     flex: 1;
     min-width: 0;
-    height: 40px;
+    height: 46px;
     padding: 0 14px;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     border: 1.5px solid var(--color-primary-tint);
     background-color: var(--color-surface-alt);
     color: var(--color-ink);

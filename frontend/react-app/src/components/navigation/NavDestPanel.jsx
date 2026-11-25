@@ -57,7 +57,7 @@ export default function NavDestPanel({
     () =>
       popularPlaces
         .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
-        .slice(0, 4),
+        .slice(0, 2),
     [popularPlaces]
   );
 
@@ -104,20 +104,22 @@ export default function NavDestPanel({
             if (query.trim()) setDropdownOpen(true);
           }}
         />
-        {query && (
-          <button
-            type="button"
-            className={styles.clearBtn}
-            aria-label="Clear destination"
-            onClick={() => {
+        <button
+          type="button"
+          className={styles.clearBtn}
+          aria-label={query ? 'Clear destination' : 'Close directions'}
+          onClick={() => {
+            if (query) {
               setQuery('');
               setDropdownOpen(false);
               onSelectDestination?.(null);
-            }}
-          >
-            <X size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-        )}
+            } else {
+              onClose?.();
+            }
+          }}
+        >
+          <X size={15} strokeWidth={2.2} aria-hidden="true" />
+        </button>
 
         {dropdownOpen && suggestions.length > 0 && (
           <div className={styles.dropdown}>
