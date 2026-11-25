@@ -7,7 +7,7 @@
   }
 
   handle {
-    root * /var/www/unimaps/frontend/dist
+    root * /var/www/unimaps/frontend/react-app/dist
     try_files {path} /index.html
     file_server
   }

@@ -27,8 +27,8 @@ jobs:
               pm2 save
             fi
 
-            if [ -d "/var/www/unimaps/frontend" ] && [ -f "/var/www/unimaps/frontend/package.json" ]; then
-              cd /var/www/unimaps/frontend
+            if [ -d "/var/www/unimaps/frontend/react-app" ] && [ -f "/var/www/unimaps/frontend/react-app/package.json" ]; then
+              cd /var/www/unimaps/frontend/react-app
               npm ci
               VITE_API_URL=/api npm run build
             fi
