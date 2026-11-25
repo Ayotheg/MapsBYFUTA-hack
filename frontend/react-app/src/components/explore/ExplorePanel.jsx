@@ -1,13 +1,23 @@
 import { useMemo, useState } from 'react';
 import {
+  BookOpen,
+  Building2,
   ChevronDown,
   ChevronRight,
   CirclePlus,
   Clock,
+  GraduationCap,
+  HeartPulse,
+  Home,
+  Landmark,
   MapPin,
   PartyPopper,
+  Printer,
   Sparkles,
+  Star,
+  Store,
   User,
+  Utensils,
   Video,
   X,
 } from 'lucide-react';
@@ -26,6 +36,27 @@ const SORT_MODES = [
   { key: 'az', label: 'A–Z' },
   { key: 'rating', label: 'Top Rated' },
 ];
+
+const PLACE_CATEGORY_ICONS = {
+  admin: Landmark,
+  library: BookOpen,
+  lecture_hall: Building2,
+  faculty: GraduationCap,
+  academic: GraduationCap,
+  food: Utensils,
+  restaurant: Utensils,
+  cafe: Utensils,
+  printing: Printer,
+  printing_shop: Printer,
+  bank: Landmark,
+  hostel: Home,
+  shop: Store,
+  clinic: HeartPulse,
+};
+
+function getPlaceIcon(type) {
+  return PLACE_CATEGORY_ICONS[(type || '').toLowerCase()] || MapPin;
+}
 
 function formatTypeLabel(value) {
   const clean = String(value || 'Campus spot').replace(/_/g, ' ').trim();
@@ -76,6 +107,7 @@ export default function ExplorePanel({
 }) {
   const [activeTab, setActiveTab] = useState('places');
   const [placeFilter, setPlaceFilter] = useState('all');
+  const [showAllPopular, setShowAllPopular] = useState(false);
   const [sortMode, setSortMode] = useState('featured');
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [eventFilter, setEventFilter] = useState('All');
@@ -107,6 +139,11 @@ export default function ExplorePanel({
     }
     return list;
   }, [popularPlaces, allPlaces, placeFilter, sortMode]);
+
+  const visiblePopular =
+    placeFilter === 'all' && !showAllPopular
+      ? filteredPopular.slice(0, 6)
+      : filteredPopular;
 
   const filteredEvents = useMemo(() => {
     if (eventFilter === 'All') return events;
@@ -298,7 +335,7 @@ export default function ExplorePanel({
                     className={styles.seeAllBtn}
                     onClick={() => {
                       if (!mobileExpanded) onExpandMobile?.();
-                      else setPlaceFilter('all');
+                      else setShowAllPopular(true);
                     }}
                   >
                     See all
@@ -307,49 +344,55 @@ export default function ExplorePanel({
                 </div>
 
                 <div className={styles.rail}>
-                  {featuredPlaces.map((place, index) => (
-                    <button
-                      key={place.id}
-                      type="button"
-                      className={styles.featuredPlaceCard}
-                      onClick={() => onSelectPlace?.(place)}
-                    >
-                      <ImageSlot
-                        src={place.image}
-                        alt={place.name}
-                        className={styles.featuredPlaceMedia}
-                        fallback={
-                          <span className={styles.photoPlaceholder}>
-                            <MapPin size={22} strokeWidth={1.8} aria-hidden="true" />
-                            <span>[Photo]</span>
+                  {featuredPlaces.map((place, index) => {
+                    const PlaceIcon = getPlaceIcon(place.type);
+                    return (
+                      <button
+                        key={place.id}
+                        type="button"
+                        className={styles.featuredPlaceCard}
+                        onClick={() => onSelectPlace?.(place)}
+                      >
+                        <ImageSlot
+                          src={place.image}
+                          alt={place.name}
+                          className={styles.featuredPlaceMedia}
+                          fallback={
+                            <span className={styles.photoPlaceholder}>
+                              <PlaceIcon
+                                size={28}
+                                strokeWidth={1.8}
+                                aria-hidden="true"
+                              />
+                            </span>
+                          }
+                        />
+                        <span className={styles.cardScrim} aria-hidden="true" />
+
+                        {(place.promoted || index < 2) && (
+                          <span className={styles.promotedPill}>
+                            <Sparkles
+                              size={11}
+                              strokeWidth={2}
+                              className={styles.promotedStar}
+                              aria-hidden="true"
+                            />
+                            <span>Promoted</span>
                           </span>
-                        }
-                      />
-                      <span className={styles.cardScrim} aria-hidden="true" />
+                        )}
 
-                      {(place.promoted || index < 2) && (
-                        <span className={styles.promotedPill}>
-                          <Sparkles
-                            size={11}
-                            strokeWidth={2}
-                            className={styles.promotedStar}
-                            aria-hidden="true"
-                          />
-                          <span>Promoted</span>
+                        <span className={styles.featuredPlaceText}>
+                          <span className={styles.featuredPlaceName}>
+                            {place.name}
+                          </span>
+                          <span className={styles.featuredPlaceMeta}>
+                            {formatTypeLabel(place.type)}
+                            {place.walkMinutes ? ` · ${place.walkMinutes} min walk` : ''}
+                          </span>
                         </span>
-                      )}
-
-                      <span className={styles.featuredPlaceText}>
-                        <span className={styles.featuredPlaceName}>
-                          {place.name}
-                        </span>
-                        <span className={styles.featuredPlaceMeta}>
-                          {formatTypeLabel(place.type)}
-                          {place.walkMinutes ? ` · ${place.walkMinutes} min walk` : ''}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -360,46 +403,76 @@ export default function ExplorePanel({
               >
                 <div className={styles.sectionHead}>
                   <h3 className={styles.sectionTitle}>Popular on campus</h3>
-                  <button
-                    type="button"
-                    className={styles.seeAllBtn}
-                    onClick={() => setPlaceFilter('all')}
-                  >
-                    See all
-                  </button>
+                  {placeFilter === 'all' && filteredPopular.length > 6 && (
+                    <button
+                      type="button"
+                      className={styles.seeAllBtn}
+                      onClick={() => setShowAllPopular((prev) => !prev)}
+                    >
+                      {showAllPopular ? 'Show less' : 'See all'}
+                    </button>
+                  )}
                 </div>
 
                 <div className={styles.placeList}>
-                  {filteredPopular.map((place) => (
-                    <button
-                      key={place.id}
-                      type="button"
-                      className={styles.placeRow}
-                      onClick={() => onSelectPlace?.(place)}
-                    >
-                      <ImageSlot
-                        src={place.image}
-                        alt={place.name}
-                        className={styles.placeThumb}
-                        fallback={
-                          <span className={styles.thumbPlaceholder}>[Photo]</span>
-                        }
-                      />
-                      <span className={styles.placeRowBody}>
-                        <span className={styles.placeRowName}>{place.name}</span>
-                        <span className={styles.placeRowMeta}>
-                          {formatTypeLabel(place.type)}
-                          {place.subtitle ? ` · ${place.subtitle}` : ''}
+                  {visiblePopular.map((place) => {
+                    const PlaceIcon = getPlaceIcon(place.type);
+                    const hasRating =
+                      typeof place.rating === 'number' &&
+                      !Number.isNaN(place.rating) &&
+                      place.rating > 0;
+
+                    return (
+                      <button
+                        key={place.id}
+                        type="button"
+                        className={styles.placeRow}
+                        onClick={() => onSelectPlace?.(place)}
+                      >
+                        <ImageSlot
+                          src={place.image}
+                          alt={place.name}
+                          className={styles.placeThumb}
+                          fallback={
+                            <span className={styles.thumbPlaceholder}>
+                              <PlaceIcon
+                                size={20}
+                                strokeWidth={1.9}
+                                aria-hidden="true"
+                              />
+                            </span>
+                          }
+                        />
+                        <span className={styles.placeRowBody}>
+                          <span className={styles.placeRowName}>{place.name}</span>
+                          <span className={styles.placeRowMeta}>
+                            <span>{formatTypeLabel(place.type)}</span>
+                            {place.subtitle ? <span> · {place.subtitle}</span> : null}
+                            {hasRating ? (
+                              <span className={styles.ratingInline}>
+                                {' · '}
+                                <Star
+                                  size={11}
+                                  strokeWidth={2}
+                                  className={styles.ratingStar}
+                                  aria-hidden="true"
+                                />
+                                <span className="tabular-nums">
+                                  {place.rating.toFixed(1)}
+                                </span>
+                              </span>
+                            ) : null}
+                          </span>
                         </span>
-                      </span>
-                      <ChevronRight
-                        size={17}
-                        strokeWidth={2}
-                        className={styles.rowChevron}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  ))}
+                        <ChevronRight
+                          size={17}
+                          strokeWidth={2}
+                          className={styles.rowChevron}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             </>

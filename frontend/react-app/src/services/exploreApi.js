@@ -1,8 +1,27 @@
-const EXPLORE_API_URL = import.meta.env.VITE_EXPLORE_API_URL?.trim() || '';
+const DEFAULT_API_URL = 'https://mapsbyfuta.xyz/api/v1';
+const RAW_API_URL = import.meta.env.VITE_EXPLORE_API_URL?.trim() || '';
+const EXPLORE_API_URL = RAW_API_URL || DEFAULT_API_URL;
 const EXPLORE_API_KEY = import.meta.env.VITE_EXPLORE_API_KEY?.trim() || '';
 
+const CACHE_KEY = 'mapsbyfuta_explore_api_v2';
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+function buildEndpoints(baseOrFullUrl) {
+  const clean = baseOrFullUrl.replace(/\/+$/, '');
+  const isV1Base = /\/v1$/i.test(clean);
+  const placesUrl = isV1Base ? `${clean}/places?limit=50` : baseOrFullUrl;
+
+  const noQuery = baseOrFullUrl.split('?')[0].replace(/\/+$/, '');
+  const imagesBaseUrl = noQuery.replace(/\/places$/i, '');
+
+  return { placesUrl, imagesBaseUrl };
+}
+
 export function isExploreApiConfigured() {
-  return Boolean(EXPLORE_API_URL);
+  if (EXPLORE_API_URL.includes('mapsbyfuta.xyz/api/v1')) {
+    return Boolean(EXPLORE_API_KEY);
+  }
+  return Boolean(RAW_API_URL);
 }
 
 /**
@@ -16,6 +35,45 @@ export function pickRandomItems(items, count = 5) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy.slice(0, Math.min(count, copy.length));
+}
+
+/**
+ * Picks 3–5 random Featured places, preferring places with photos.
+ */
+export function pickFeaturedPlaces(places, count = 5) {
+  if (!Array.isArray(places) || places.length === 0) return [];
+  const target = Math.min(places.length, count);
+  const withMedia = places.filter(
+    (place) => Boolean(place.image) || place.imageCount > 0
+  );
+  const withoutMedia = places.filter(
+    (place) => !place.image && place.imageCount <= 0
+  );
+
+  const pickedWithMedia = pickRandomItems(withMedia, target);
+  if (pickedWithMedia.length >= target) {
+    return pickedWithMedia;
+  }
+
+  const remaining = target - pickedWithMedia.length;
+  return [...pickedWithMedia, ...pickRandomItems(withoutMedia, remaining)];
+}
+
+function popularityScore(place) {
+  const ratingScore = (place.rating || 0) * Math.log((place.reviewCount || 0) + 2);
+  const mediaBoost = place.image || place.imageCount > 0 ? 1.5 : 0;
+  return ratingScore + mediaBoost;
+}
+
+function rankPopularPlaces(places, featuredIds) {
+  const remaining = places.filter((place) => !featuredIds.has(place.id));
+  const pool = remaining.length > 0 ? remaining : [...places];
+
+  return [...pool].sort((a, b) => {
+    const scoreDiff = popularityScore(b) - popularityScore(a);
+    if (Math.abs(scoreDiff) > 0.001) return scoreDiff;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 function extractImage(raw) {
@@ -50,6 +108,8 @@ export function normalizePlace(raw, index = 0) {
     category: normalizedType,
     badge,
     image: extractImage(raw),
+    imageCount: Number(raw.image_count ?? raw.imageCount ?? 0),
+    reviewCount: Number(raw.review_count ?? raw.reviewCount ?? 0),
     lat: raw.lat != null ? Number(raw.lat) : raw.latitude != null ? Number(raw.latitude) : null,
     lng:
       raw.lng != null
@@ -156,28 +216,87 @@ function unwrapPayload(json) {
   };
 }
 
+function createAuthHeaders() {
+  const headers = { Accept: 'application/json' };
+  if (EXPLORE_API_KEY) {
+    headers['x-api-key'] = EXPLORE_API_KEY;
+  }
+  return headers;
+}
+
 /**
- * Fetches JSON payload from VITE_EXPLORE_API_URL when configured.
+ * Fetches the first photo URL for a single place from `/places/:id/images`.
  */
-export async function fetchExplorePayload({ signal } = {}) {
-  if (!EXPLORE_API_URL) {
+export async function fetchPlaceImageUrl(placeId, { signal } = {}) {
+  if (!placeId) return null;
+  const { imagesBaseUrl } = buildEndpoints(EXPLORE_API_URL);
+
+  try {
+    const response = await fetch(
+      `${imagesBaseUrl}/places/${encodeURIComponent(placeId)}/images`,
+      {
+        method: 'GET',
+        headers: createAuthHeaders(),
+        signal,
+      }
+    );
+    if (!response.ok) return null;
+    const json = await response.json();
+    const first = Array.isArray(json?.data) ? json.data[0] : null;
+    return first?.url || first?.full_url || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetches places from the configured API (defaulting to Maps By FUTA v1),
+ * picks 3–5 random Featured places + ranked Popular on campus list,
+ * fetches photos for the Featured places and top 5 Popular places, and
+ * caches in localStorage (30 min TTL) so dev reloads don't burn credits.
+ */
+export async function fetchExplorePayload({ signal, bypassCache = false } = {}) {
+  if (!isExploreApiConfigured()) {
     return {
       configured: false,
       places: [],
+      featuredPlaces: [],
+      popularPlaces: [],
       channels: [],
       events: [],
       people: [],
     };
   }
 
-  const headers = { Accept: 'application/json' };
-  if (EXPLORE_API_KEY) {
-    headers['x-api-key'] = EXPLORE_API_KEY;
+  const { placesUrl } = buildEndpoints(EXPLORE_API_URL);
+
+  if (!bypassCache) {
+    try {
+      const cachedRaw = localStorage.getItem(CACHE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        const fresh =
+          cached?.savedAt && Date.now() - cached.savedAt < CACHE_TTL_MS;
+        if (fresh && cached?.placesUrl === placesUrl && Array.isArray(cached.places)) {
+          return {
+            configured: true,
+            places: cached.places,
+            featuredPlaces: cached.featuredPlaces || [],
+            popularPlaces: cached.popularPlaces || [],
+            channels: cached.channels || [],
+            events: cached.events || [],
+            people: cached.people || [],
+          };
+        }
+      }
+    } catch {
+      // Ignore storage read errors
+    }
   }
 
-  const response = await fetch(EXPLORE_API_URL, {
+  const response = await fetch(placesUrl, {
     method: 'GET',
-    headers,
+    headers: createAuthHeaders(),
     signal,
   });
 
@@ -188,11 +307,73 @@ export async function fetchExplorePayload({ signal } = {}) {
   const json = await response.json();
   const { rawPlaces, rawChannels, rawEvents, rawPeople } = unwrapPayload(json);
 
+  const places = rawPlaces.map(normalizePlace);
+  const channels = rawChannels.map(normalizeChannel);
+  const events = rawEvents.map(normalizeEvent);
+  const people = rawPeople.map(normalizePerson);
+
+  const featuredCount = Math.min(5, Math.max(3, places.length));
+  const initialFeatured = pickFeaturedPlaces(places, featuredCount);
+  const featuredIds = new Set(initialFeatured.map((place) => place.id));
+  const initialPopular = rankPopularPlaces(places, featuredIds);
+
+  const candidatesForPhoto = [
+    ...initialFeatured,
+    ...initialPopular.slice(0, 5),
+  ].filter((place) => !place.image && place.imageCount > 0);
+
+  const uniquePhotoIds = Array.from(
+    new Set(candidatesForPhoto.map((place) => place.id))
+  );
+
+  const photoMap = new Map();
+  if (uniquePhotoIds.length > 0) {
+    const settled = await Promise.allSettled(
+      uniquePhotoIds.map(async (id) => ({
+        id,
+        url: await fetchPlaceImageUrl(id, { signal }),
+      }))
+    );
+
+    for (const result of settled) {
+      if (result.status === 'fulfilled' && result.value.url) {
+        photoMap.set(result.value.id, result.value.url);
+      }
+    }
+  }
+
+  const applyPhoto = (place) =>
+    photoMap.has(place.id) ? { ...place, image: photoMap.get(place.id) } : place;
+
+  const hydratedPlaces = places.map(applyPhoto);
+  const featuredPlaces = initialFeatured.map(applyPhoto);
+  const popularPlaces = initialPopular.map(applyPhoto);
+
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        savedAt: Date.now(),
+        placesUrl,
+        places: hydratedPlaces,
+        featuredPlaces,
+        popularPlaces,
+        channels,
+        events,
+        people,
+      })
+    );
+  } catch {
+    // Ignore storage write errors
+  }
+
   return {
     configured: true,
-    places: rawPlaces.map(normalizePlace),
-    channels: rawChannels.map(normalizeChannel),
-    events: rawEvents.map(normalizeEvent),
-    people: rawPeople.map(normalizePerson),
+    places: hydratedPlaces,
+    featuredPlaces,
+    popularPlaces,
+    channels,
+    events,
+    people,
   };
 }

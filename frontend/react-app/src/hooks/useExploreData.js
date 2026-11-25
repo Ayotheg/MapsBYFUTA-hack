@@ -10,9 +10,14 @@ import {
 } from '../services/exploreApi';
 
 function buildInitialState() {
+  const featured = pickRandomItems(SAMPLE_PLACES, 5);
+  const featuredIds = new Set(featured.map((item) => item.id));
+  const popular = SAMPLE_PLACES.filter((item) => !featuredIds.has(item.id));
+
   return {
     places: SAMPLE_PLACES,
-    featuredPlaces: pickRandomItems(SAMPLE_PLACES, 5),
+    featuredPlaces: featured,
+    popularPlaces: popular.length > 0 ? popular : SAMPLE_PLACES,
     channels: PLACEHOLDER_CHANNELS,
     events: PLACEHOLDER_EVENTS,
     people: PLACEHOLDER_PEOPLE,
@@ -22,8 +27,8 @@ function buildInitialState() {
 
 /**
  * Fetches Explore data from VITE_EXPLORE_API_URL when configured,
- * picks 3–5 random places for the Explore Featured cards, and falls back
- * gracefully to editable local .js placeholders when API sections are absent.
+ * picks 3–5 random places for the Explore Featured cards, ranks Popular on campus,
+ * and falls back gracefully to editable local .js placeholders when API sections are absent.
  */
 export function useExploreData() {
   const [data, setData] = useState(buildInitialState);
@@ -49,10 +54,20 @@ export function useExploreData() {
         const nextPlaces =
           payload.places.length > 0 ? payload.places : SAMPLE_PLACES;
         const featuredCount = Math.min(5, Math.max(3, nextPlaces.length));
+        const nextFeatured =
+          payload.featuredPlaces?.length > 0
+            ? payload.featuredPlaces
+            : pickRandomItems(nextPlaces, featuredCount);
+        const featuredIds = new Set(nextFeatured.map((item) => item.id));
+        const nextPopular =
+          payload.popularPlaces?.length > 0
+            ? payload.popularPlaces
+            : nextPlaces.filter((item) => !featuredIds.has(item.id));
 
         setData({
           places: nextPlaces,
-          featuredPlaces: pickRandomItems(nextPlaces, featuredCount),
+          featuredPlaces: nextFeatured,
+          popularPlaces: nextPopular.length > 0 ? nextPopular : nextPlaces,
           channels:
             payload.channels.length > 0
               ? payload.channels
@@ -75,13 +90,10 @@ export function useExploreData() {
     return () => controller.abort();
   }, [refreshTick]);
 
-  const featuredIds = new Set(data.featuredPlaces.map((item) => item.id));
-  const popularPlaces = data.places.filter((item) => !featuredIds.has(item.id));
-
   return {
     places: data.places,
     featuredPlaces: data.featuredPlaces,
-    popularPlaces: popularPlaces.length > 0 ? popularPlaces : data.places,
+    popularPlaces: data.popularPlaces,
     channels: data.channels,
     events: data.events,
     people: data.people,
