@@ -191,6 +191,40 @@ app.post('/api/promotions', (req, res) => {
   res.status(201).json(created);
 });
 
+// Auth: quick sign-in / sign-up persisted in SQLite
+app.post('/api/auth/signin', (req, res) => {
+  const { name = '', email = '', department = '' } = req.body || {};
+  const cleanEmail = String(email).trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return res.status(400).json({ error: 'Valid email is required' });
+  }
+
+  const existing = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+  if (existing) {
+    if (name.trim() && name.trim() !== existing.name) {
+      db.prepare('UPDATE users SET name = ?, department = ? WHERE id = ?').run(
+        name.trim(),
+        String(department).trim() || existing.department,
+        existing.id
+      );
+    }
+    const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(existing.id);
+    return res.json({ user: updated });
+  }
+
+  const id = `usr-${crypto.randomUUID().slice(0, 8)}`;
+  const displayName = String(name).trim() || cleanEmail.split('@')[0];
+  db.prepare('INSERT INTO users (id, name, email, department) VALUES (?, ?, ?, ?)').run(
+    id,
+    displayName,
+    cleanEmail,
+    String(department).trim()
+  );
+
+  const created = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  res.status(201).json({ user: created });
+});
+
 // Optional: serve built frontend from ../frontend/dist on Nobus Cloud single-server deploy
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDist)) {

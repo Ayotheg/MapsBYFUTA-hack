@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { AuthModal } from './components/auth';
 import BaseMap from './components/BaseMap';
 import { EventCard } from './components/events';
 import ExplorePanel from './components/explore/ExplorePanel';
@@ -33,6 +34,15 @@ function App() {
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [promoteKind, setPromoteKind] = useState('place');
+  const [authOpen, setAuthOpen] = useState(false);
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('unimaps_user_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
   const [pickingOnMap, setPickingOnMap] = useState(false);
   const [pickedCoords, setPickedCoords] = useState(null);
 
@@ -79,6 +89,24 @@ function App() {
     setSuggestOpen(false);
     setPickingOnMap(false);
     setPickedCoords(null);
+  }
+
+  function handleSignIn(nextUser) {
+    setUser(nextUser);
+    try {
+      localStorage.setItem('unimaps_user_v1', JSON.stringify(nextUser));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function handleSignOut() {
+    setUser(null);
+    try {
+      localStorage.removeItem('unimaps_user_v1');
+    } catch {
+      // ignore storage errors
+    }
   }
 
   function handleOpenSuggest() {
@@ -267,9 +295,11 @@ function App() {
         activeTab={nav.navActive || showDestPanel ? 'navigate' : activeTab}
         navActive={nav.navActive}
         navDot={Boolean(meet.session)}
+        user={user}
         onTabChange={handleTabChange}
         onNavigateAction={handleNavigateAction}
         onSuggestClick={handleOpenSuggest}
+        onAuthClick={() => setAuthOpen(true)}
       />
 
       <ExplorePanel
@@ -299,6 +329,14 @@ function App() {
         open={showPromotePanel}
         initialKind={promoteKind}
         onClose={() => setPromoteOpen(false)}
+      />
+
+      <AuthModal
+        open={authOpen}
+        user={user}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+        onClose={() => setAuthOpen(false)}
       />
 
       <SignalPanel
