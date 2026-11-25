@@ -1,0 +1,77 @@
+.scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .scroll {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.chip:hover {
+  border-color: var(--color-primary-outline);
+  transform: translateY(-1px);
+}
+
+.chip:active {
+  transform: scale(0.97);
+}
+
+.chipActive {
+  background-color: var(--color-secondary-tint);
+  border-color: var(--color-secondary);
+  color: var(--color-ink);
+}
+
+.allPlacesChip {
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+
+.allPlacesChip.chipActive {
+  border-style: solid;
+  color: var(--color-ink);
+}
+
+@media (max-width: 767px) {
+  .scroll {
+    padding-left: 2px;
+    padding-right: 12px;
+  }
+}
