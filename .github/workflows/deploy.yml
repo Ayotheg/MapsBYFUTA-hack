@@ -1,0 +1,36 @@
+name: Deploy to Nobus Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.NOBUS_HOST }}
+          username: ${{ secrets.NOBUS_USER }}
+          key: ${{ secrets.NOBUS_SSH_KEY }}
+          script: |
+            set -e
+            cd /var/www/unimaps
+            git pull origin main
+
+            if [ -d "backend" ]; then
+              cd /var/www/unimaps/backend
+              npm ci --omit=dev
+              pm2 reload ecosystem.config.cjs || pm2 start ecosystem.config.cjs
+              pm2 save
+            fi
+
+            if [ -d "/var/www/unimaps/frontend" ] && [ -f "/var/www/unimaps/frontend/package.json" ]; then
+              cd /var/www/unimaps/frontend
+              npm ci
+              VITE_API_URL=/api npm run build
+            fi
+
+            sudo systemctl reload caddy || true

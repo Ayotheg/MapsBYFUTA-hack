@@ -1,0 +1,14 @@
+# Replace :80 with unimaps.<YOUR_NOBUS_IP>.sslip.io for automatic HTTPS!
+:80 {
+  encode gzip
+
+  handle /api/* {
+    reverse_proxy localhost:5000
+  }
+
+  handle {
+    root * /var/www/unimaps/frontend/dist
+    try_files {path} /index.html
+    file_server
+  }
+}
