@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AuthModal } from './components/auth';
 import BaseMap from './components/BaseMap';
 import { EventCard } from './components/events';
@@ -22,9 +22,15 @@ import { useGpsTracking } from './hooks/useGpsTracking';
 import { useMeetMe } from './hooks/useMeetMe';
 import { useNavigation } from './hooks/useNavigation';
 import { useSuggestedPlaces } from './hooks/useSuggestedPlaces';
+import LandingPage from './pages/LandingPage';
 import './App.css';
 
-function App() {
+function isMapRoute(pathname, search) {
+  if (search && new URLSearchParams(search).has('meet')) return true;
+  return pathname === '/map' || pathname.startsWith('/map/');
+}
+
+function MapWorkspace({ onBackHome }) {
   const [mapInstance, setMapInstance] = useState(null);
   const [activeTab, setActiveTab] = useState('explore');
   const [exploreMobileExpanded, setExploreMobileExpanded] = useState(false);
@@ -304,6 +310,7 @@ function App() {
         onNavigateAction={handleNavigateAction}
         onSuggestClick={handleOpenSuggest}
         onAuthClick={() => setAuthOpen(true)}
+        onLogoClick={onBackHome}
       />
 
       <ExplorePanel
@@ -489,6 +496,38 @@ function App() {
       )}
     </div>
   );
+}
+
+function App() {
+  const [route, setRoute] = useState(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+  }));
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoute({
+        pathname: window.location.pathname,
+        search: window.location.search,
+      });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  function navigateTo(path) {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+    setRoute({ pathname: path, search: '' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  if (isMapRoute(route.pathname, route.search)) {
+    return <MapWorkspace onBackHome={() => navigateTo('/')} />;
+  }
+
+  return <LandingPage onOpenMap={() => navigateTo('/map')} />;
 }
 
 export default App;
