@@ -51,6 +51,22 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_places_campus ON places(campus_id, status);
   CREATE INDEX IF NOT EXISTS idx_reviews_place ON reviews(place_id);
+
+  CREATE TABLE IF NOT EXISTS promotions (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL DEFAULT 'place',
+    plan_id TEXT NOT NULL,
+    plan_name TEXT NOT NULL,
+    amount_ngn INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT '',
+    location TEXT NOT NULL DEFAULT '',
+    tagline TEXT NOT NULL DEFAULT '',
+    contact TEXT NOT NULL,
+    event_date TEXT,
+    status TEXT NOT NULL DEFAULT 'pending_review',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 export function seedIfEmpty() {

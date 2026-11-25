@@ -11,6 +11,7 @@ import {
   NavDestPanel,
   NavHud,
 } from './components/navigation';
+import { PromotePanel } from './components/promote';
 import SearchBar from './components/search/SearchBar';
 import SignalPanel from './components/signal/SignalPanel';
 import { SuggestPanel } from './components/suggest';
@@ -30,6 +31,8 @@ function App() {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoteKind, setPromoteKind] = useState('place');
   const [pickingOnMap, setPickingOnMap] = useState(false);
   const [pickedCoords, setPickedCoords] = useState(null);
 
@@ -80,6 +83,7 @@ function App() {
 
   function handleOpenSuggest() {
     if (nav.navActive) return;
+    setPromoteOpen(false);
     setSelectedPlace(null);
     setSelectedEvent(null);
     setExploreMobileExpanded(false);
@@ -90,8 +94,22 @@ function App() {
     setSuggestOpen(true);
   }
 
+  function handleOpenPromote(kind = 'place') {
+    if (nav.navActive) return;
+    closeSuggest();
+    setSelectedPlace(null);
+    setSelectedEvent(null);
+    setExploreMobileExpanded(false);
+    setSignalMobileExpanded(false);
+    setActiveTab(null);
+    nav.closeNavPicker();
+    setPromoteKind(kind);
+    setPromoteOpen(true);
+  }
+
   function handleTabChange(nextTab) {
     closeSuggest();
+    setPromoteOpen(false);
     setSelectedEvent(null);
 
     if (nextTab === 'explore' && activeTab === 'explore') {
@@ -212,11 +230,13 @@ function App() {
 
   const showDestPanel = nav.destPanelOpen && !nav.navActive;
   const showSuggestPanel = suggestOpen && !nav.navActive;
+  const showPromotePanel = promoteOpen && !nav.navActive;
   const desktopPanelOpen =
     !nav.navActive &&
     (activeTab === 'explore' ||
       activeTab === 'signal' ||
       showDestPanel ||
+      showPromotePanel ||
       (showSuggestPanel && !pickingOnMap) ||
       Boolean(selectedPlace) ||
       Boolean(selectedEvent));
@@ -253,7 +273,7 @@ function App() {
       />
 
       <ExplorePanel
-        open={!nav.navActive && !showSuggestPanel && activeTab === 'explore'}
+        open={!nav.navActive && !showSuggestPanel && !showPromotePanel && activeTab === 'explore'}
         mobileExpanded={exploreMobileExpanded}
         onExpandMobile={() => setExploreMobileExpanded(true)}
         onClose={() => {
@@ -271,6 +291,14 @@ function App() {
         onSelectPlace={handleSelectPlace}
         onSelectEvent={handleSelectEvent}
         onSuggestClick={handleOpenSuggest}
+        onPromotePlace={() => handleOpenPromote('place')}
+        onPromoteEvent={() => handleOpenPromote('event')}
+      />
+
+      <PromotePanel
+        open={showPromotePanel}
+        initialKind={promoteKind}
+        onClose={() => setPromoteOpen(false)}
       />
 
       <SignalPanel

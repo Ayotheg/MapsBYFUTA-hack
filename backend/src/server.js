@@ -142,6 +142,55 @@ app.get('/api/route', async (req, res) => {
   res.json(route);
 });
 
+// Promotions: list & submit campus business/event promotions
+app.get('/api/promotions', (_req, res) => {
+  const rows = db.prepare('SELECT * FROM promotions ORDER BY created_at DESC').all();
+  res.json(rows);
+});
+
+app.post('/api/promotions', (req, res) => {
+  const {
+    kind = 'place',
+    plan_id = 'spotlight',
+    plan_name = 'Campus Spotlight',
+    amount_ngn = 6000,
+    title,
+    category = '',
+    location = '',
+    tagline = '',
+    contact,
+    event_date = null,
+  } = req.body || {};
+
+  if (!title || String(title).trim().length < 2) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!contact || String(contact).trim().length < 5) {
+    return res.status(400).json({ error: 'contact is required' });
+  }
+
+  const id = `PRM-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+  db.prepare(`
+    INSERT INTO promotions (id, kind, plan_id, plan_name, amount_ngn, title, category, location, tagline, contact, event_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    kind === 'event' ? 'event' : 'place',
+    String(plan_id),
+    String(plan_name),
+    Number(amount_ngn) || 6000,
+    String(title).trim(),
+    String(category).trim(),
+    String(location).trim(),
+    String(tagline).trim(),
+    String(contact).trim(),
+    event_date ? String(event_date).trim() : null
+  );
+
+  const created = db.prepare('SELECT * FROM promotions WHERE id = ?').get(id);
+  res.status(201).json(created);
+});
+
 // Optional: serve built frontend from ../frontend/dist on Nobus Cloud single-server deploy
 const frontendDist = path.join(__dirname, '..', '..', 'frontend', 'dist');
 if (fs.existsSync(frontendDist)) {
