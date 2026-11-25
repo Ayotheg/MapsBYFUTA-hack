@@ -1,0 +1,68 @@
+:root {
+  /* 17 Brand Colours */
+  --color-primary: #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-primary-tint: #ede9fe;
+  --color-white: #ffffff;
+  --color-ink: #0f172a;
+  --color-text: #4a4455;
+  --color-text-muted: #6b6478;
+  --color-surface: #f8f9ff;
+  --color-surface-alt: #f2f3ff;
+  --color-border: #e2e8f0;
+  --color-scrim: rgba(15, 23, 42, 0.4);
+  --color-secondary: #0d9488;
+  --color-secondary-light: #6bd8cb;
+  --color-secondary-tint: #e6f6f4;
+  --color-error: #ba1a1a;
+  --color-error-tint: #fff8f7;
+  --color-star: #ffc857;
+
+  /* Derived Brand Alpha Helpers (from primary #7c3aed) */
+  --color-primary-outline: rgba(124, 58, 237, 0.2);
+  --color-primary-glow: rgba(124, 58, 237, 0.1);
+  --color-primary-tag: rgba(124, 58, 237, 0.3);
+
+  /* Typography Families (loaded via CDN in index.html) */
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-numeric: 'Manrope', var(--font-ui);
+  --font-jakarta: 'Plus Jakarta Sans', var(--font-ui);
+  --font-geist: 'Geist', var(--font-ui);
+  --font-satoshi: 'Satoshi', var(--font-ui);
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Layout & Safe Areas */
+  --header-height: 72px;
+  --sidebar-rail-width: 80px;
+  --sidebar-panel-width: 240px;
+  --sheet-radius: 20px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+}
