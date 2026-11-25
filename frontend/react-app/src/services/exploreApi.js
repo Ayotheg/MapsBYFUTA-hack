@@ -3,8 +3,10 @@ const RAW_API_URL = import.meta.env.VITE_EXPLORE_API_URL?.trim() || '';
 const EXPLORE_API_URL = RAW_API_URL || DEFAULT_API_URL;
 const EXPLORE_API_KEY = import.meta.env.VITE_EXPLORE_API_KEY?.trim() || '';
 
-const CACHE_KEY = 'mapsbyfuta_explore_api_v2';
+const CACHE_KEY = 'mapsbyfuta_explore_api_v3';
 const CACHE_TTL_MS = 30 * 60 * 1000;
+const MAX_PAGES = 10;
+const placeImagesCache = new Map();
 
 function buildEndpoints(baseOrFullUrl) {
   const clean = baseOrFullUrl.replace(/\/+$/, '');
@@ -15,6 +17,18 @@ function buildEndpoints(baseOrFullUrl) {
   const imagesBaseUrl = noQuery.replace(/\/places$/i, '');
 
   return { placesUrl, imagesBaseUrl };
+}
+
+function buildOffsetUrl(baseUrl, offset) {
+  try {
+    const parsed = new URL(baseUrl);
+    parsed.searchParams.set('limit', parsed.searchParams.get('limit') || '50');
+    parsed.searchParams.set('offset', String(offset));
+    return parsed.toString();
+  } catch {
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${sep}offset=${offset}`;
+  }
 }
 
 export function isExploreApiConfigured() {
@@ -225,10 +239,68 @@ function createAuthHeaders() {
 }
 
 /**
- * Fetches the first photo URL for a single place from `/places/:id/images`.
+ * Fetches all paginated place pages from the API up to MAX_PAGES,
+ * gracefully returning already-collected pages if a later page hits rate limits.
  */
-export async function fetchPlaceImageUrl(placeId, { signal } = {}) {
-  if (!placeId) return null;
+async function fetchAllPlacesPages(firstPageUrl, { signal } = {}) {
+  const allRawPlaces = [];
+  let rawChannels = [];
+  let rawEvents = [];
+  let rawPeople = [];
+  let nextUrl = firstPageUrl;
+
+  for (let page = 0; page < MAX_PAGES && nextUrl; page += 1) {
+    let response;
+    try {
+      response = await fetch(nextUrl, {
+        method: 'GET',
+        headers: createAuthHeaders(),
+        signal,
+      });
+    } catch (err) {
+      if (page === 0) throw err;
+      break;
+    }
+
+    if (!response.ok) {
+      if (page === 0) {
+        throw new Error(`Explore API error (${response.status})`);
+      }
+      break;
+    }
+
+    const json = await response.json();
+    const unwrapped = unwrapPayload(json);
+    allRawPlaces.push(...unwrapped.rawPlaces);
+
+    if (page === 0) {
+      rawChannels = unwrapped.rawChannels;
+      rawEvents = unwrapped.rawEvents;
+      rawPeople = unwrapped.rawPeople;
+    }
+
+    const nextOffset = json?.meta?.pagination?.next_offset;
+    if (nextOffset == null) {
+      nextUrl = null;
+    } else {
+      nextUrl = buildOffsetUrl(firstPageUrl, nextOffset);
+    }
+  }
+
+  return { rawPlaces: allRawPlaces, rawChannels, rawEvents, rawPeople };
+}
+
+/**
+ * Fetches all photo URLs for a single place from `/places/:id/images`, cached in memory.
+ */
+export async function fetchPlaceImages(placeId, { signal } = {}) {
+  if (!placeId) return [];
+  const cacheKey = String(placeId);
+  if (placeImagesCache.has(cacheKey)) {
+    return placeImagesCache.get(cacheKey);
+  }
+  if (!isExploreApiConfigured()) return [];
+
   const { imagesBaseUrl } = buildEndpoints(EXPLORE_API_URL);
 
   try {
@@ -240,20 +312,33 @@ export async function fetchPlaceImageUrl(placeId, { signal } = {}) {
         signal,
       }
     );
-    if (!response.ok) return null;
+    if (!response.ok) return [];
     const json = await response.json();
-    const first = Array.isArray(json?.data) ? json.data[0] : null;
-    return first?.url || first?.full_url || null;
+    const urls = Array.isArray(json?.data)
+      ? json.data
+          .map((item) => item?.url || item?.full_url)
+          .filter((url) => typeof url === 'string' && url.trim())
+      : [];
+    placeImagesCache.set(cacheKey, urls);
+    return urls;
   } catch {
-    return null;
+    return [];
   }
 }
 
 /**
- * Fetches places from the configured API (defaulting to Maps By FUTA v1),
+ * Fetches the first photo URL for a single place from `/places/:id/images`.
+ */
+export async function fetchPlaceImageUrl(placeId, { signal } = {}) {
+  const urls = await fetchPlaceImages(placeId, { signal });
+  return urls[0] || null;
+}
+
+/**
+ * Fetches all paginated places from the configured API (defaulting to Maps By FUTA v1),
  * picks 3–5 random Featured places + ranked Popular on campus list,
- * fetches photos for the Featured places and top 5 Popular places, and
- * caches in localStorage (30 min TTL) so dev reloads don't burn credits.
+ * hydrates photos for up to 4 Featured and top 4 Popular places (max 8 calls),
+ * and caches in localStorage (30 min TTL) so dev reloads don't burn credits.
  */
 export async function fetchExplorePayload({ signal, bypassCache = false } = {}) {
   if (!isExploreApiConfigured()) {
@@ -294,18 +379,8 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
     }
   }
 
-  const response = await fetch(placesUrl, {
-    method: 'GET',
-    headers: createAuthHeaders(),
-    signal,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Explore API error (${response.status})`);
-  }
-
-  const json = await response.json();
-  const { rawPlaces, rawChannels, rawEvents, rawPeople } = unwrapPayload(json);
+  const { rawPlaces, rawChannels, rawEvents, rawPeople } =
+    await fetchAllPlacesPages(placesUrl, { signal });
 
   const places = rawPlaces.map(normalizePlace);
   const channels = rawChannels.map(normalizeChannel);
@@ -318,13 +393,13 @@ export async function fetchExplorePayload({ signal, bypassCache = false } = {}) 
   const initialPopular = rankPopularPlaces(places, featuredIds);
 
   const candidatesForPhoto = [
-    ...initialFeatured,
-    ...initialPopular.slice(0, 5),
+    ...initialFeatured.slice(0, 4),
+    ...initialPopular.slice(0, 4),
   ].filter((place) => !place.image && place.imageCount > 0);
 
   const uniquePhotoIds = Array.from(
     new Set(candidatesForPhoto.map((place) => place.id))
-  );
+  ).slice(0, 8);
 
   const photoMap = new Map();
   if (uniquePhotoIds.length > 0) {

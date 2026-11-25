@@ -1,0 +1,93 @@
+/* Global styles for imperative Leaflet L.divIcon waypoint pins */
+
+.mbf-pin-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  pointer-events: auto;
+  max-width: min(190px, 42vw);
+}
+
+.mbf-pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--pin-color, #0d9488);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.45);
+  flex-shrink: 0;
+  transition: transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease;
+}
+
+.mbf-pin-wrap:hover .mbf-pin-dot {
+  transform: scale(1.18);
+}
+
+.mbf-pin-selected .mbf-pin-dot {
+  transform: scale(1.3);
+  box-shadow:
+    0 0 0 4px rgba(124, 58, 237, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.45);
+}
+
+.mbf-pin-label {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+  max-width: 128px;
+  line-height: 1.2;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 0 3px #ffffff,
+    0 0 6px rgba(255, 255, 255, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 -1px 0 rgba(255, 255, 255, 0.95);
+  transition: opacity 160ms ease;
+}
+
+/* Zoom tiers stamped onto the Leaflet container by BaseMap */
+.map-zoom-far .mbf-pin-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-zoom-far .mbf-pin-dot {
+  transform: scale(0.62);
+  opacity: 0.72;
+}
+
+.map-zoom-mid .mbf-pin-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-zoom-mid .mbf-pin-dot {
+  transform: scale(0.82);
+  opacity: 0.9;
+}
+
+.map-zoom-near .mbf-pin-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-zoom-near .mbf-pin-dot,
+.map-zoom-close .mbf-pin-dot {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.map-zoom-close .mbf-pin-label {
+  opacity: 1;
+}
+
+.map-zoom-near .mbf-pin-selected .mbf-pin-label,
+.map-zoom-close .mbf-pin-selected .mbf-pin-label {
+  opacity: 1;
+}

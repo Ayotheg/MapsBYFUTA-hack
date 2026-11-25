@@ -1,0 +1,345 @@
+.topCard {
+  position: fixed;
+  top: calc(16px + var(--safe-top));
+  left: 16px;
+  right: 16px;
+  z-index: 2200;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: hudSlideDown var(--duration-base) var(--ease-standard);
+}
+
+@media (min-width: 768px) {
+  .topCard {
+    left: 50%;
+    right: auto;
+    width: 100%;
+    max-width: 480px;
+    transform: translateX(-50%);
+    animation-name: hudSlideDownDesktop;
+  }
+}
+
+.topCardArriving {
+  border-color: var(--color-primary-outline);
+}
+
+.topCardArrived {
+  border-color: var(--color-secondary);
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 14px;
+}
+
+.turnIconBox {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.topCardArrived .turnIconBox {
+  background-color: var(--color-secondary);
+}
+
+.turnInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.nowLabel {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 2px;
+}
+
+.instruction {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stepDistance {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.voiceBtn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-alt);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.voiceBtn:hover {
+  background-color: var(--color-primary-tint);
+}
+
+.voiceBtn:active {
+  transform: scale(0.95);
+}
+
+.endBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(186, 26, 26, 0.2);
+  background-color: var(--color-error-tint);
+  color: var(--color-error);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.endBtn:hover {
+  background-color: rgba(186, 26, 26, 0.12);
+}
+
+.endBtn:active {
+  transform: scale(0.96);
+}
+
+.upNextStrip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 16px;
+  background-color: var(--color-surface-alt);
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.upNextLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary-hover);
+}
+
+.upNextText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compactRemainStrip {
+  background-color: var(--color-white);
+}
+
+.compactRemainLabel {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.compactRemainVal {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* ── Floating map utility buttons ──────────────────────────────── */
+.mapActions {
+  position: fixed;
+  right: 16px;
+  bottom: calc(80px + var(--safe-bottom) + 124px);
+  z-index: 2200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mapActionBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.mapActionBtn:first-child {
+  color: var(--color-primary);
+}
+
+.mapActionBtn:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.mapActionBtn:active {
+  transform: scale(0.95);
+}
+
+@media (min-width: 768px) {
+  .mapActions {
+    bottom: 138px;
+  }
+}
+
+/* ── Bottom distance summary card ──────────────────────────────── */
+.distCard {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(80px + var(--safe-bottom));
+  z-index: 2200;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: 14px 16px;
+  text-align: center;
+  animation: hudSlideUp var(--duration-base) var(--ease-standard);
+}
+
+@media (min-width: 768px) {
+  .distCard {
+    left: 50%;
+    right: auto;
+    bottom: 24px;
+    width: 100%;
+    max-width: 440px;
+    transform: translateX(-50%);
+    animation-name: hudSlideUpDesktop;
+  }
+}
+
+.distLabel {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.distValue {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-primary);
+}
+
+.destLine {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes hudSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hudSlideDownDesktop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes hudSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hudSlideUpDesktop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topCard,
+  .distCard {
+    animation: none;
+  }
+}

@@ -1,0 +1,478 @@
+.panel {
+  position: fixed;
+  top: 16px;
+  left: calc(var(--sidebar-rail-width) + 16px);
+  width: 396px;
+  max-height: calc(100dvh - 32px);
+  z-index: 1200;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  font-family: var(--font-ui);
+}
+
+.grabRow,
+.mobilePeekView,
+.collapseBtn {
+  display: none;
+}
+
+.fullView {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerText {
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-ink);
+}
+
+.subtitle {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badgeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+.badgePoor {
+  background-color: var(--color-error-tint);
+  color: var(--color-error);
+}
+
+.badgeFair {
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+}
+
+.badgeGood {
+  background-color: var(--color-secondary-tint);
+  color: var(--color-ink);
+}
+
+.badgeGood .badgeDot {
+  background-color: var(--color-secondary);
+}
+
+.iconBtn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.iconBtn:hover {
+  background-color: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.collapseBtn {
+  color: var(--color-primary);
+}
+
+/* ── Signal Meter Card (Full view) ─────────────────────────────── */
+.visCard {
+  padding: 20px 16px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-white) 0%, var(--color-surface-alt) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.bars {
+  height: 76px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+}
+
+.bar {
+  width: 22px;
+  border-radius: 6px;
+  background-color: var(--color-border);
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.miniBars {
+  height: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.miniBar {
+  width: 5px;
+  border-radius: 2px;
+  background-color: var(--color-border);
+}
+
+.barPoor {
+  background-color: var(--color-error);
+}
+
+.barFair {
+  background-color: var(--color-primary);
+}
+
+.barGood {
+  background-color: var(--color-secondary);
+}
+
+.visReadout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.visScore {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.scorePoor {
+  color: var(--color-error);
+}
+
+.scoreFair {
+  color: var(--color-primary);
+}
+
+.scoreGood {
+  color: var(--color-secondary);
+}
+
+.visLabel {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* ── Primary Locate / Stop Button ──────────────────────────────── */
+.gpsBtn {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px -8px rgba(124, 58, 237, 0.55);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.gpsBtn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.gpsBtn:active {
+  transform: scale(0.98);
+}
+
+.gpsBtnStop {
+  background-color: var(--color-white);
+  color: var(--color-error);
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+}
+
+.gpsBtnStop:hover {
+  background-color: var(--color-error-tint);
+}
+
+/* ── Compact Peek Signal Row ───────────────────────────────────── */
+.signalRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background-color: var(--color-surface);
+}
+
+.signalRowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.signalRowTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.signalRowScore {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.signalRowSub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detailsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 4px;
+  color: var(--color-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Warning Banner ────────────────────────────────────────────── */
+.warning {
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.warningPoor {
+  background-color: var(--color-error-tint);
+  color: var(--color-error);
+}
+
+/* ── Telemetry Grid ────────────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.statCard {
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.statHead {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.statIcon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.statLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Live Tracking Row ─────────────────────────────────────────── */
+.liveRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.liveText {
+  min-width: 0;
+}
+
+.liveTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.liveSub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.switchOn {
+  background-color: var(--color-secondary);
+}
+
+.switchThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.switchOn .switchThumb {
+  transform: translateX(20px);
+}
+
+/* ── Mobile Bottom Sheet (< 768px) ─────────────────────────────── */
+@media (max-width: 767px) {
+  .panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: calc(64px + var(--safe-bottom));
+    width: auto;
+    max-height: calc(100dvh - 96px - var(--safe-top));
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    padding: 8px 18px 18px;
+  }
+
+  .grabRow {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+
+  .grabBtn {
+    border: none;
+    background: none;
+    padding: 4px 20px;
+    cursor: pointer;
+  }
+
+  .grabPill {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-border);
+  }
+
+  .mobilePeekView {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .desktopOnlyFull {
+    display: none;
+  }
+
+  .collapseBtn {
+    display: inline-flex;
+  }
+}

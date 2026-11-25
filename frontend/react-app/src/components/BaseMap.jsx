@@ -10,24 +10,44 @@ import {
 } from '../data/basemaps';
 import styles from './BaseMap.module.css';
 
+function applyZoomTierClass(container, zoom) {
+  if (!container) return;
+  container.classList.remove(
+    'map-zoom-far',
+    'map-zoom-mid',
+    'map-zoom-near',
+    'map-zoom-close'
+  );
+  if (zoom <= 14) container.classList.add('map-zoom-far');
+  else if (zoom === 15) container.classList.add('map-zoom-mid');
+  else if (zoom <= 17) container.classList.add('map-zoom-near');
+  else container.classList.add('map-zoom-close');
+}
+
 /**
  * Full-bleed Leaflet base map centered on FUTA campus.
- * Manages the imperative Leaflet instance cleanly across StrictMode mounts.
+ * Stamps zoom-tier classes onto the map container and flies smoothly to
+ * any selected waypoint.
  */
 export default function BaseMap({
   basemapId = DEFAULT_BASEMAP_ID,
   selectedPlace = null,
   onMapReady,
+  onMapClick,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
-  const selectionMarkerRef = useRef(null);
   const onMapReadyRef = useRef(onMapReady);
+  const onMapClickRef = useRef(onMapClick);
 
   useEffect(() => {
     onMapReadyRef.current = onMapReady;
   }, [onMapReady]);
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -66,6 +86,17 @@ export default function BaseMap({
       interactive: false,
     }).addTo(map);
 
+    const handleZoomClass = () => {
+      applyZoomTierClass(container, map.getZoom());
+    };
+    handleZoomClass();
+    map.on('zoomend', handleZoomClass);
+
+    const handleMapClick = () => {
+      onMapClickRef.current?.();
+    };
+    map.on('click', handleMapClick);
+
     const resizeObserver = new ResizeObserver(() => {
       map.invalidateSize({ animate: false });
     });
@@ -75,10 +106,8 @@ export default function BaseMap({
 
     return () => {
       resizeObserver.disconnect();
-      if (selectionMarkerRef.current) {
-        selectionMarkerRef.current.remove();
-        selectionMarkerRef.current = null;
-      }
+      map.off('zoomend', handleZoomClass);
+      map.off('click', handleMapClick);
       map.removeLayer(campusBoundsRect);
       if (tileLayerRef.current) {
         map.removeLayer(tileLayerRef.current);
@@ -116,40 +145,17 @@ export default function BaseMap({
     const map = mapRef.current;
     if (!map) return;
 
-    if (selectionMarkerRef.current) {
-      selectionMarkerRef.current.remove();
-      selectionMarkerRef.current = null;
-    }
-
-    if (!selectedPlace || selectedPlace.lat == null || selectedPlace.lng == null) {
+    if (
+      !selectedPlace ||
+      !Number.isFinite(selectedPlace.lat) ||
+      !Number.isFinite(selectedPlace.lng)
+    ) {
       return;
     }
 
-    const coords = [selectedPlace.lat, selectedPlace.lng];
-    const marker = L.circleMarker(coords, {
-      radius: 9,
-      color: '#ffffff',
-      weight: 3,
-      fillColor: '#7c3aed',
-      fillOpacity: 1,
-    }).addTo(map);
-
-    const popupEl = document.createElement('div');
-    const titleEl = document.createElement('strong');
-    titleEl.textContent = selectedPlace.name;
-    popupEl.appendChild(titleEl);
-    if (selectedPlace.subtitle) {
-      const subEl = document.createElement('div');
-      subEl.style.fontSize = '12px';
-      subEl.style.color = '#6b6478';
-      subEl.textContent = selectedPlace.subtitle;
-      popupEl.appendChild(subEl);
-    }
-
-    marker.bindPopup(popupEl, { closeButton: false, offset: [0, -6] }).openPopup();
-    selectionMarkerRef.current = marker;
-
-    map.flyTo(coords, Math.max(map.getZoom(), 17), { duration: 0.7 });
+    map.flyTo([selectedPlace.lat, selectedPlace.lng], Math.max(map.getZoom(), 18), {
+      duration: 0.7,
+    });
   }, [selectedPlace]);
 
   return (

@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import BaseMap from './components/BaseMap';
 import ExplorePanel from './components/explore/ExplorePanel';
+import WaypointMarkers from './components/map/WaypointMarkers';
 import Navbar from './components/Navbar';
 import SearchBar from './components/search/SearchBar';
+import PlaceCard from './components/waypoints/PlaceCard';
 import { useExploreData } from './hooks/useExploreData';
 import './App.css';
 
 function App() {
+  const [mapInstance, setMapInstance] = useState(null);
   const [activeTab, setActiveTab] = useState('explore');
   const [exploreMobileExpanded, setExploreMobileExpanded] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -33,21 +36,37 @@ function App() {
       return;
     }
 
+    if (nextTab) {
+      setSelectedPlace(null);
+    }
     setExploreMobileExpanded(false);
     setActiveTab(nextTab);
   }
 
   function handleSelectPlace(place) {
     setSelectedPlace(place);
-    if (window.innerWidth < 768) {
+    if (place) {
       setActiveTab(null);
       setExploreMobileExpanded(false);
     }
   }
 
+  const desktopPanelOpen = activeTab === 'explore' || Boolean(selectedPlace);
+
   return (
     <div className="map-workspace">
-      <BaseMap selectedPlace={selectedPlace} />
+      <BaseMap
+        selectedPlace={selectedPlace}
+        onMapReady={setMapInstance}
+        onMapClick={() => setSelectedPlace(null)}
+      />
+
+      <WaypointMarkers
+        map={mapInstance}
+        places={places}
+        selectedPlaceId={selectedPlace?.id ?? null}
+        onSelectPlace={handleSelectPlace}
+      />
 
       <Navbar
         activeTab={activeTab}
@@ -74,9 +93,18 @@ function App() {
         onSelectPlace={handleSelectPlace}
       />
 
+      {selectedPlace && (
+        <PlaceCard
+          key={selectedPlace.id}
+          place={selectedPlace}
+          onClose={() => setSelectedPlace(null)}
+          onNavigate={() => setActiveTab('navigate')}
+        />
+      )}
+
       <SearchBar
         places={places}
-        panelOpen={activeTab === 'explore'}
+        panelOpen={desktopPanelOpen}
         onSelectPlace={handleSelectPlace}
         onNavigateClick={() => setActiveTab('navigate')}
       />
