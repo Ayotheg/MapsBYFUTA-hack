@@ -4,7 +4,16 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-6);
+  padding-left: calc(var(--sidebar-rail-width) + var(--space-6));
   background-color: var(--color-surface);
+}
+
+@media (max-width: 767px) {
+  .setup-shell {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+    padding-bottom: calc(104px + var(--safe-bottom));
+  }
 }
 
 .setup-card {

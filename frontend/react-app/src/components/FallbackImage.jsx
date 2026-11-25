@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 
 /**
@@ -13,11 +13,8 @@ export default function FallbackImage({
   fallbackLabel,
   FallbackIcon = ImageIcon,
 }) {
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
+  const [failedSrc, setFailedSrc] = useState(null);
+  const failed = Boolean(src) && failedSrc === src;
 
   if (!src || failed) {
     return (
@@ -55,7 +52,7 @@ export default function FallbackImage({
       alt={alt}
       className={className}
       style={style}
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MapPin } from 'lucide-react';
 
 const DEFAULT_SOURCES = {
@@ -20,11 +20,8 @@ export default function BrandLogo({
 }) {
   const key = variant === 'mark' ? 'mark' : `lockup-${tone}`;
   const resolvedSrc = src || DEFAULT_SOURCES[key];
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [resolvedSrc]);
+  const [failedSrc, setFailedSrc] = useState(null);
+  const failed = Boolean(resolvedSrc) && failedSrc === resolvedSrc;
 
   if (resolvedSrc && !failed) {
     return (
@@ -38,7 +35,7 @@ export default function BrandLogo({
           objectFit: 'contain',
           display: 'block',
         }}
-        onError={() => setFailed(true)}
+        onError={() => setFailedSrc(resolvedSrc)}
       />
     );
   }
