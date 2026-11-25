@@ -353,7 +353,12 @@ export async function fetchPlaceImages(placeId, { signal } = {}) {
         signal,
       }
     );
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.warn(
+        `[MapsByFUTA] Image fetch failed for place ${placeId}: HTTP ${response.status}`
+      );
+      return [];
+    }
     const json = await response.json();
     const urls = Array.isArray(json?.data)
       ? json.data
@@ -365,7 +370,10 @@ export async function fetchPlaceImages(placeId, { signal } = {}) {
       savePersistentImageCache();
     }
     return urls;
-  } catch {
+  } catch (err) {
+    if (err?.name !== 'AbortError') {
+      console.warn(`[MapsByFUTA] Image fetch error for place ${placeId}:`, err);
+    }
     return [];
   }
 }

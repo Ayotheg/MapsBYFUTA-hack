@@ -119,7 +119,16 @@ export default function PlaceCard({
   const areaLabel = place.subtitle?.trim() || '';
 
   function markUrlFailed(url) {
-    setFailedUrls((prev) => (prev[url] ? prev : { ...prev, [url]: true }));
+    setFailedUrls((prev) => {
+      if (prev[url]) return prev;
+      const next = { ...prev, [url]: true };
+      // If another photo URL exists that hasn't failed yet, advance to it automatically
+      const nextValidIdx = photos.findIndex((candidate) => !next[candidate]);
+      if (nextValidIdx >= 0 && nextValidIdx !== safeIdx) {
+        setPhotoIdx(nextValidIdx);
+      }
+      return next;
+    });
   }
 
   function handleTouchStart(event) {
