@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import BaseMap from './components/BaseMap';
+import { EventCard } from './components/events';
 import ExplorePanel from './components/explore/ExplorePanel';
 import WaypointMarkers from './components/map/WaypointMarkers';
 import Navbar from './components/Navbar';
@@ -24,6 +25,7 @@ function App() {
   const [exploreMobileExpanded, setExploreMobileExpanded] = useState(false);
   const [signalMobileExpanded, setSignalMobileExpanded] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [pickingOnMap, setPickingOnMap] = useState(false);
   const [pickedCoords, setPickedCoords] = useState(null);
@@ -71,6 +73,7 @@ function App() {
   function handleOpenSuggest() {
     if (nav.navActive) return;
     setSelectedPlace(null);
+    setSelectedEvent(null);
     setExploreMobileExpanded(false);
     setSignalMobileExpanded(false);
     setActiveTab(null);
@@ -81,6 +84,7 @@ function App() {
 
   function handleTabChange(nextTab) {
     closeSuggest();
+    setSelectedEvent(null);
 
     if (nextTab === 'explore' && activeTab === 'explore') {
       if (window.innerWidth < 768 && !exploreMobileExpanded) {
@@ -125,6 +129,7 @@ function App() {
   function handleSelectPlace(place) {
     if (pickingOnMap) return;
     closeSuggest();
+    setSelectedEvent(null);
     setSelectedPlace(place);
     if (place) {
       setActiveTab(null);
@@ -136,8 +141,36 @@ function App() {
     }
   }
 
+  function handleSelectEvent(event) {
+    if (!event) return;
+    closeSuggest();
+    setSelectedPlace(null);
+    setActiveTab(null);
+    setExploreMobileExpanded(false);
+    setSignalMobileExpanded(false);
+    setSelectedEvent(event);
+  }
+
+  function handleNavigateToEventVenue(event) {
+    setSelectedEvent(null);
+    const venueLower = (event?.venue || '').toLowerCase().trim();
+    const matchedPlace =
+      venueLower &&
+      places.find((p) => {
+        const name = (p.name || '').toLowerCase();
+        return (
+          Number.isFinite(p.lat) &&
+          Number.isFinite(p.lng) &&
+          (name.includes(venueLower) || venueLower.includes(name))
+        );
+      });
+    setActiveTab('navigate');
+    nav.openNavPicker(matchedPlace || null);
+  }
+
   function handleNavigateToPlace(place) {
     closeSuggest();
+    setSelectedEvent(null);
     setSelectedPlace(null);
     setExploreMobileExpanded(false);
     setSignalMobileExpanded(false);
@@ -152,6 +185,7 @@ function App() {
       return;
     }
     setSelectedPlace(null);
+    setSelectedEvent(null);
   }
 
   const showDestPanel = nav.destPanelOpen && !nav.navActive;
@@ -162,7 +196,8 @@ function App() {
       activeTab === 'signal' ||
       showDestPanel ||
       (showSuggestPanel && !pickingOnMap) ||
-      Boolean(selectedPlace));
+      Boolean(selectedPlace) ||
+      Boolean(selectedEvent));
 
   return (
     <div className="map-workspace">
@@ -206,6 +241,8 @@ function App() {
         loading={loading}
         error={error}
         onSelectPlace={handleSelectPlace}
+        onSelectEvent={handleSelectEvent}
+        onSuggestClick={handleOpenSuggest}
       />
 
       <SignalPanel
@@ -303,6 +340,15 @@ function App() {
           setActiveTab(null);
         }}
       />
+
+      {selectedEvent && !nav.navActive && (
+        <EventCard
+          key={selectedEvent.id}
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onNavigateToVenue={handleNavigateToEventVenue}
+        />
+      )}
 
       {selectedPlace && (
         <PlaceCard
